@@ -1,3 +1,4 @@
+---
 apiVersion: authzed.com/v1alpha1
 kind: SpiceDBCluster
 metadata:

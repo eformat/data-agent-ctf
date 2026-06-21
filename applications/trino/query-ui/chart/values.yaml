@@ -1,3 +1,4 @@
+---
 image:
   repository: quay.io/eformat/trino-query-ui
   tag: latest

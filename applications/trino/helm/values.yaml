@@ -1,3 +1,4 @@
+---
 # Trino values for the Acme Retail demo
 # Three Iceberg catalogs: finance, sales, ops
 # Single-node cluster: coordinator-only (0 workers)

@@ -1,3 +1,4 @@
+---
 # OpenShell Helm Values Reference
 # Not applied directly — used as reference for the ArgoCD Application helm source.
 #

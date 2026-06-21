@@ -1,3 +1,4 @@
+---
 # TODO: copy from ~/git/trino-chart/nessie/
 # Nessie catalog server for Iceberg metadata
 apiVersion: apps/v1
