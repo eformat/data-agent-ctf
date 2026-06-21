@@ -64,11 +64,6 @@ sops --encrypt --in-place applications/keycloak/config/realm-secret.enc.yaml
 sops --decrypt applications/keycloak/config/realm-secret.enc.yaml
 ```
 
-## CTF
-
-See [CAPTURE_THE_FLAG.md](https://github.com/eformat/data-agent-template/blob/main/examples/retail/CAPTURE_THE_FLAG.md)
-in the data-agent-template repo.
-
 ## Values
 
 Edit `values.yaml` to configure:
