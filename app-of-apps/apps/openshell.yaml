@@ -9,10 +9,26 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
-    path: applications/openshell
+  sources:
+    - repoURL: oci://ghcr.io/nvidia/openshell/helm-chart
+      chart: openshell
+      targetRevision: "*"
+      helm:
+        valuesObject:
+          image:
+            repository: quay.io/eformat/openshell-gateway
+            tag: 0.0.62-h2ws
+          certManager:
+            enabled: true
+          service:
+            type: ClusterIP
+          tolerations:
+            - effect: NoSchedule
+              key: nvidia.com/gpu
+              operator: Exists
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      path: applications/openshell/routes
   destination:
     server: https://kubernetes.default.svc
     namespace: data-agent-ctf

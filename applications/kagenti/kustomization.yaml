@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# ZTWIM and Kagenti operator are deployed via separate ArgoCD Applications
+# (see app-of-apps/apps/kagenti.yaml) — ZTWIM via kustomize, Kagenti via Helm.
+# This kustomization exists for local validation only.
 resources:
   - ztwim/
-  - operator/

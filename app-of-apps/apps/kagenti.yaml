@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-kagenti
+  name: retail-ctf-kagenti-ztwim
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -12,10 +12,52 @@ spec:
   source:
     repoURL: https://github.com/eformat/data-agent-ctf.git
     targetRevision: main
-    path: applications/kagenti
+    path: applications/kagenti/ztwim
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshift-zero-trust-workload-identity-manager
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-ctf-kagenti-operator
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/kagenti/kagenti.git
+      targetRevision: main
+      path: charts/kagenti
+      helm:
+        valuesObject:
+          openshift: true
+          components:
+            agentOperator:
+              enabled: true
+            agentNamespaces:
+              enabled: false
+            mcpGateway:
+              enabled: false
+            ui:
+              enabled: false
+            istio:
+              enabled: false
+            phoenix:
+              enabled: false
+            mlflow:
+              enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kagenti-system
   syncPolicy:
     automated:
       selfHeal: true
