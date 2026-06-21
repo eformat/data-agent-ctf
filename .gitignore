@@ -1,2 +1,5 @@
 age-key.txt
 .claude/
+.vscode/
+.idea/
+.DS_Store
