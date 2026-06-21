@@ -1,0 +1,51 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-zero-trust-workload-identity-manager
+  namespace: openshift-zero-trust-workload-identity-manager
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: openshift-zero-trust-workload-identity-manager
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: ZeroTrustWorkloadIdentityManager
+metadata:
+  name: cluster
+spec:
+  trustDomain: retail-demo
+  clusterName: agent-platform
+  bundleConfigMap: spire-bundle
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpiffeCSIDriver
+metadata:
+  name: cluster
+spec:
+  agentSocketPath: /run/spire/agent-sockets
+  pluginName: csi.spiffe.io
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireServer
+metadata:
+  name: cluster
+spec:
+  caSubject:
+    commonName: retail-demo
+    country: "US"
+    organization: "RH"
+  persistence:
+    size: "1Gi"
+    accessMode: ReadWriteOnce
+  datastore:
+    databaseType: sqlite3
+    connectionString: "/run/spire/data/datastore.sqlite3"
+  jwtIssuer: "https://oidc-discovery-provider.retail-demo"
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireAgent
+metadata:
+  name: cluster
+spec: {}

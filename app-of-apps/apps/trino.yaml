@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-ctf-trino-infra
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/eformat/data-agent-ctf.git
+    targetRevision: main
+    path: applications/trino
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-agent-ctf
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-ctf-trino-helm
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://trinodb.github.io/charts
+      chart: trino
+      targetRevision: "*"
+      helm:
+        valueFiles:
+          - $values/applications/trino/helm/values.yaml
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-agent-ctf
+  syncPolicy:
+    automated:
+      selfHeal: true

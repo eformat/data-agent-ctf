@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: \.enc\.yaml$
+    age: >-
+      age179d6g35x6a9mz73yeuxuvp0z94870aw9npjgh3p6zhfgjcpcudgqm4hkgt

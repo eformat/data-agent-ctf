@@ -1,0 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Trino credentials secret is in ../../secrets.enc.yaml (sops encrypted)
+# Trino Helm chart deployed via ArgoCD Helm source type
+resources: []

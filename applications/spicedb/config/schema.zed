@@ -1,0 +1,54 @@
+// Acme Retail Corp — SpiceDB Authorization Schema
+//
+// Models: users, organizations, departments, catalogs, datasets
+// Used by: OpenShell gateway (authz.rs), console plugin, reconciliation controller
+//
+// Load with:
+//   zed schema write --insecure examples/retail/deploy/spicedb/schema.zed
+
+definition user {}
+
+definition organization {
+    relation admin: user
+    relation member: user
+    permission manage = admin
+    permission use = admin + member
+}
+
+definition department {
+    relation organization: organization
+    relation head: user
+    relation member: user
+    permission manage = head + organization->manage
+    permission access = head + member + organization->manage
+}
+
+definition catalog {
+    relation organization: organization
+    relation department: department
+    relation owner: user
+    relation reader: user | department#member | organization#member
+    relation writer: user | department#head | organization#admin
+    permission read = reader + writer + owner + department->access
+    permission write = writer + owner + department->manage + organization->manage
+    permission manage = owner + organization->manage
+}
+
+definition dataset {
+    relation catalog: catalog
+    relation owner: user
+    relation viewer: user | department#member
+    permission query = viewer + owner + catalog->read
+    permission view_metadata = query
+    permission export = owner + catalog->write
+}
+
+definition sandbox {
+    relation owner: user
+    relation organization: organization
+    relation shared_with: user
+    relation allowed_catalogs: catalog
+    permission connect = owner + shared_with + organization->use
+    permission delete = owner + organization->manage
+    permission view = connect
+}

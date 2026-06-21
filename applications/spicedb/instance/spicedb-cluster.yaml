@@ -1,0 +1,20 @@
+apiVersion: authzed.com/v1alpha1
+kind: SpiceDBCluster
+metadata:
+  name: dev
+spec:
+  config:
+    datastoreEngine: postgres
+    datastoreBootstrapFiles: /opt/spicedb/schema.zed
+  secretName: spicedb-config
+  patches:
+    - kind: Deployment
+      patch:
+        spec:
+          template:
+            spec:
+              tolerations:
+                - effect: NoSchedule
+                  key: nvidia.com/gpu
+                  operator: Exists
+# Secret spicedb-config is in ../../secrets.enc.yaml (sops encrypted)

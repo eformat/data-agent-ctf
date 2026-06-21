@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - schema-job.yaml
+configMapGenerator:
+  - name: spicedb-config-files
+    behavior: replace
+    files:
+      - schema.zed
+      - fixtures.yaml
+generatorOptions:
+  disableNameSuffixHash: true

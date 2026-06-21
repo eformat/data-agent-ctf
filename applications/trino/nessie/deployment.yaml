@@ -1,0 +1,42 @@
+# TODO: copy from ~/git/trino-chart/nessie/
+# Nessie catalog server for Iceberg metadata
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nessie
+  labels:
+    app: nessie
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nessie
+  template:
+    metadata:
+      labels:
+        app: nessie
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: nessie
+          image: ghcr.io/projectnessie/nessie:latest
+          ports:
+            - containerPort: 19120
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nessie
+spec:
+  selector:
+    app: nessie
+  ports:
+    - port: 19120
+      targetPort: 19120

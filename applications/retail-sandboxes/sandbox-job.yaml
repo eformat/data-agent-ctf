@@ -1,0 +1,113 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retail-sandbox-deploy
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      serviceAccountName: sandbox-deployer
+      containers:
+        - name: deploy
+          image: quay.io/eformat/toolbox:latest
+          command: ["/bin/bash", "/scripts/deploy-sandboxes.sh"]
+          envFrom:
+            - secretRef:
+                name: sandbox-secrets
+          env:
+            - name: HERMES_IMAGE
+              value: "quay.io/eformat/hermes-openshell:latest"
+            - name: KEYCLOAK_ISSUER
+              value: ""
+            - name: KEYCLOAK_CLIENT_ID
+              value: "hermes-dashboard"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: policy
+              mountPath: /policy
+      volumes:
+        - name: scripts
+          configMap:
+            name: sandbox-deploy-scripts
+        - name: policy
+          configMap:
+            name: sandbox-policy
+      restartPolicy: OnFailure
+# Secret sandbox-secrets is in ../secrets.enc.yaml (sops encrypted)
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sandbox-deployer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-deploy-scripts
+data:
+  deploy-sandboxes.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    GATEWAY="${OPENSHELL_GATEWAY:-prelude2-final}"
+    APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+
+    KEYCLOAK_ISSUER="${KEYCLOAK_ISSUER:-https://keycloak-$(oc get route keycloak -o jsonpath='{.spec.host}' 2>/dev/null)}"
+
+    for dept in finance sales ops; do
+      name="retail-${dept}"
+      echo "=== Deploying ${name} ==="
+
+      # Generate per-department OPA policy
+      sed "/retail-.*-mcp/{/retail-${dept}-mcp/!{N;d;}}" \
+          /policy/policy-retail.yaml > "/tmp/policy-${dept}.yaml"
+
+      UPLOAD_DIR=$(mktemp -d)
+      mkdir -p "$UPLOAD_DIR/profiles/retail-"{finance,sales,ops}
+      echo "GATEWAY_ALLOW_ALL_USERS=true" > "$UPLOAD_DIR/.env"
+      for d in finance sales ops; do
+        cp "$UPLOAD_DIR/.env" "$UPLOAD_DIR/profiles/retail-${d}/.env"
+      done
+      echo "retail-${dept}" > "$UPLOAD_DIR/active_profile"
+
+      openshell sandbox delete "$name" -g "$GATEWAY" 2>/dev/null || true
+      sleep 3
+
+      openshell sandbox create -g "$GATEWAY" \
+        --name "$name" \
+        --from "$HERMES_IMAGE" \
+        --upload "$UPLOAD_DIR:/sandbox/.hermes" \
+        --policy "/tmp/policy-${dept}.yaml" \
+        --no-tty \
+        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
+               GATEWAY_ALLOW_ALL_USERS=true \
+               HERMES_ACTIVE_PROFILE="retail-${dept}" \
+               HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
+               HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
+               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
+               /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
+
+      # Wait for Ready
+      for i in $(seq 1 40); do
+        status=$(openshell sandbox list -g "$GATEWAY" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}')
+        [ "$status" = "Ready" ] && break
+        sleep 10
+      done
+
+      # Expose
+      openshell service expose "$name" 9119 -g "$GATEWAY" 2>&1 || true
+
+      rm -rf "$UPLOAD_DIR" "/tmp/policy-${dept}.yaml"
+      echo "  ${name}: https://${name}.${APPS_DOMAIN}"
+    done
+
+    echo "=== All sandboxes deployed ==="

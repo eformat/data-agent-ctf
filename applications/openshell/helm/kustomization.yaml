@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# OpenShell gateway — deployed via ArgoCD Helm source type.
+# Override the openshell app-of-apps entry to use:
+#   source:
+#     chart: openshell
+#     repoURL: oci://ghcr.io/nvidia/openshell/helm-chart
+#     targetRevision: "*"
+#     helm:
+#       valuesObject: (contents of values.yaml)
+resources:
+  - values-reference.yaml

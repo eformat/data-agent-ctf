@@ -1,0 +1,31 @@
+# OpenShell Helm Values Reference
+# Not applied directly — used as reference for the ArgoCD Application helm source.
+#
+# helm upgrade --install openshell oci://ghcr.io/nvidia/openshell/helm-chart \
+#   --namespace data-agent-ctf \
+#   -f values-reference.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshell-helm-values-reference
+  labels:
+    app.kubernetes.io/part-of: retail-ctf
+  annotations:
+    description: "Reference values for OpenShell Helm chart — not applied by kustomize"
+data:
+  values.yaml: |
+    image:
+      repository: quay.io/eformat/openshell-gateway
+      tag: 0.0.62-h2ws
+
+    certManager:
+      enabled: true
+
+    service:
+      type: ClusterIP
+
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists

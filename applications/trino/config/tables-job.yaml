@@ -1,0 +1,165 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trino-data-setup
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: setup
+          image: quay.io/eformat/toolbox:latest
+          command: ["/bin/bash", "/scripts/setup-trino.sh"]
+          env:
+            - name: TRINO_HOST
+              value: "trino"
+            - name: TRINO_PORT
+              value: "8080"
+            - name: NESSIE_URL
+              value: "http://nessie:19120"
+            - name: MINIO_ENDPOINT
+              value: "http://minio:9000"
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: MINIO_ROOT_USER
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: MINIO_ROOT_PASSWORD
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: scripts
+          configMap:
+            name: trino-setup-scripts
+        - name: data
+          configMap:
+            name: trino-data-loader
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino-setup-scripts
+data:
+  setup-trino.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    echo "=== Waiting for Trino ==="
+    for i in $(seq 1 60); do
+      if curl -sf "http://${TRINO_HOST}:${TRINO_PORT}/v1/info" >/dev/null 2>&1; then
+        echo "Trino is ready"
+        break
+      fi
+      echo "  waiting... ($i/60)"
+      sleep 5
+    done
+
+    echo "=== Creating Nessie branches ==="
+    for branch in finance sales ops; do
+      curl -sf -X POST "${NESSIE_URL}/api/v2/trees" \
+        -H "Content-Type: application/json" \
+        -d "{\"type\":\"BRANCH\",\"name\":\"${branch}\"}" 2>/dev/null || echo "  ${branch} (exists)"
+    done
+
+    echo "=== Creating MinIO warehouse bucket ==="
+    pip install -q minio 2>/dev/null
+    python3 -c "
+    import os
+    from minio import Minio
+    c = Minio('${MINIO_ENDPOINT}'.replace('http://',''), access_key=os.environ['S3_ACCESS_KEY'], secret_key=os.environ['S3_SECRET_KEY'], secure=False)
+    if not c.bucket_exists('warehouse'):
+        c.make_bucket('warehouse')
+        print('  created warehouse bucket')
+    else:
+        print('  warehouse bucket exists')
+    "
+
+    echo "=== Creating schemas ==="
+    trino_exec() {
+      curl -sf -X POST "http://${TRINO_HOST}:${TRINO_PORT}/v1/statement" \
+        -H "X-Trino-User: setup" \
+        -H "X-Trino-Catalog: $2" \
+        -H "X-Trino-Schema: analytics" \
+        -d "$1" >/dev/null
+      sleep 1
+    }
+
+    for catalog in finance sales ops; do
+      echo "  ${catalog}.analytics"
+      trino_exec "CREATE SCHEMA IF NOT EXISTS ${catalog}.analytics" "${catalog}"
+    done
+
+    echo "=== Creating tables ==="
+    # Finance tables
+    trino_exec "CREATE TABLE IF NOT EXISTS finance.analytics.revenue (year INT, month INT, region VARCHAR, product_line VARCHAR, amount DOUBLE)" finance
+    trino_exec "CREATE TABLE IF NOT EXISTS finance.analytics.expenses (year INT, month INT, department VARCHAR, category VARCHAR, amount DOUBLE)" finance
+    trino_exec "CREATE TABLE IF NOT EXISTS finance.analytics.margins (year INT, quarter INT, product_line VARCHAR, revenue DOUBLE, cogs DOUBLE, margin_pct DOUBLE)" finance
+    trino_exec "CREATE TABLE IF NOT EXISTS finance.analytics.forecasts (year INT, quarter INT, region VARCHAR, target DOUBLE, actual DOUBLE, variance_pct DOUBLE)" finance
+
+    # Sales tables
+    trino_exec "CREATE TABLE IF NOT EXISTS sales.analytics.orders (order_id VARCHAR, order_date DATE, customer_id VARCHAR, region VARCHAR, product_line VARCHAR, quantity INT, revenue DOUBLE, channel VARCHAR)" sales
+    trino_exec "CREATE TABLE IF NOT EXISTS sales.analytics.pipeline (opportunity_id VARCHAR, stage VARCHAR, probability INT, expected_revenue DOUBLE, rep VARCHAR, region VARCHAR, created_date DATE, close_date DATE)" sales
+    trino_exec "CREATE TABLE IF NOT EXISTS sales.analytics.customers (customer_id VARCHAR, segment VARCHAR, region VARCHAR, first_purchase DATE, lifetime_value DOUBLE, preferred_channel VARCHAR)" sales
+    trino_exec "CREATE TABLE IF NOT EXISTS sales.analytics.acquisition_costs (year INT, quarter INT, channel VARCHAR, spend DOUBLE, new_customers INT, cac DOUBLE)" sales
+
+    # Ops tables
+    trino_exec "CREATE TABLE IF NOT EXISTS ops.analytics.inventory (snapshot_date DATE, sku VARCHAR, warehouse VARCHAR, quantity INT, reorder_point INT, days_of_supply DOUBLE)" ops
+    trino_exec "CREATE TABLE IF NOT EXISTS ops.analytics.shipments (shipment_id VARCHAR, order_id VARCHAR, warehouse VARCHAR, carrier VARCHAR, ship_date DATE, delivery_date DATE, transit_days INT, status VARCHAR)" ops
+    trino_exec "CREATE TABLE IF NOT EXISTS ops.analytics.warehouses (warehouse VARCHAR, region VARCHAR, year INT, month INT, capacity INT, utilization_pct DOUBLE, operating_cost DOUBLE)" ops
+    trino_exec "CREATE TABLE IF NOT EXISTS ops.analytics.returns (return_id VARCHAR, order_id VARCHAR, sku VARCHAR, return_date DATE, reason VARCHAR, refund_amount DOUBLE)" ops
+
+    echo "=== Loading sample data ==="
+    pip install -q trino 2>/dev/null
+    python3 /data/load-data.py --host "${TRINO_HOST}" --port "${TRINO_PORT}"
+
+    echo "=== Planting CTF flags ==="
+    TRINO_URL="http://${TRINO_HOST}:${TRINO_PORT}" bash /scripts/plant-flags.sh
+
+    echo "=== Done ==="
+
+  plant-flags.sh: |
+    #!/bin/bash
+    set -uo pipefail
+    TRINO_URL="${TRINO_URL:-http://trino:8080}"
+
+    trino_exec() {
+      local sql="$1" catalog="${2:-finance}"
+      local resp next
+      resp=$(curl -s -X POST "${TRINO_URL}/v1/statement" \
+        -H "X-Trino-User: ctf-admin" \
+        -H "X-Trino-Catalog: ${catalog}" \
+        -H "X-Trino-Schema: analytics" \
+        -d "$sql")
+      next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
+      while [ -n "$next" ] && [ "$next" != "None" ]; do
+        sleep 0.5
+        resp=$(curl -s "$next")
+        next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
+        state=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stats',{}).get('state',''))" 2>/dev/null)
+        [ "$state" = "FINISHED" ] && break
+      done
+      echo "  planted"
+    }
+
+    echo "Planting flags..."
+    trino_exec "INSERT INTO finance.analytics.revenue VALUES (2099, 1, 'FLAG', 'FLAG{the_spice_must_flow}', 0.0)" finance
+    trino_exec "INSERT INTO sales.analytics.customers VALUES ('FLAG-001', 'FLAG{cross_dept_data_leak}', 'Arrakis', DATE '2099-01-01', 0.0, 'sandworm')" sales
+    trino_exec "INSERT INTO ops.analytics.inventory VALUES (DATE '2099-01-01', 'FLAG{the_slow_blade_penetrates}', 'Sietch-Tabr', 0, 0, 0.0)" ops
+    trino_exec "INSERT INTO finance.analytics.forecasts VALUES (2099, 1, 'FLAG{regex_is_not_a_parser}', 0.0, 0.0, 0.0)" finance
+    trino_exec "INSERT INTO finance.analytics.expenses VALUES (2099, 1, 'FLAG', 'FLAG{trin0_has_no_auth_lol}', 0.0)" finance

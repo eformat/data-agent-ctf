@@ -1,0 +1,141 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-setup
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: setup
+          image: quay.io/eformat/toolbox:latest
+          command: ["/bin/bash", "/scripts/setup-realm.sh"]
+          envFrom:
+            - secretRef:
+                name: keycloak-admin-secret
+          env:
+            - name: KEYCLOAK_URL
+              value: "https://keycloak-service:8443"
+            - name: REALM_NAME
+              value: "retail-ctf"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: keycloak-realm-scripts
+      restartPolicy: OnFailure
+# Secret keycloak-admin-secret is in ../../secrets.enc.yaml (sops encrypted)
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-scripts
+data:
+  setup-realm.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    KC="${KEYCLOAK_URL}"
+    REALM="${REALM_NAME}"
+
+    # Get admin token
+    get_token() {
+      curl -sk -X POST "${KC}/realms/master/protocol/openid-connect/token" \
+        -d "grant_type=client_credentials&client_id=admin-cli" \
+        -d "grant_type=password&username=${KEYCLOAK_ADMIN}&password=${KEYCLOAK_ADMIN_PASSWORD}&client_id=admin-cli" \
+        | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])"
+    }
+
+    kc_api() {
+      local method="$1" path="$2"; shift 2
+      local token=$(get_token)
+      curl -sk -X "$method" "${KC}/admin/realms${path}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" "$@"
+    }
+
+    echo "=== Creating realm: ${REALM} ==="
+    kc_api POST "" -d "{\"realm\":\"${REALM}\",\"enabled\":true}" 2>/dev/null || echo "  (exists)"
+
+    echo "=== Creating client: hermes-dashboard ==="
+    kc_api POST "/${REALM}/clients" -d '{
+      "clientId": "hermes-dashboard",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["openid", "profile", "email"]
+    }' 2>/dev/null || echo "  (exists)"
+
+    echo "=== Creating client: retail-mcp ==="
+    kc_api POST "/${REALM}/clients" -d '{
+      "clientId": "retail-mcp",
+      "enabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "secret": "retail-mcp-secret",
+      "protocol": "openid-connect"
+    }' 2>/dev/null || echo "  (exists)"
+
+    echo "=== Creating users ==="
+    for user in fred sally alex prelude; do
+      echo "  Creating user: ${user}"
+      kc_api POST "/${REALM}/users" -d "{
+        \"username\":\"${user}\",
+        \"enabled\":true,
+        \"email\":\"${user}@redhat.com\",
+        \"emailVerified\":true,
+        \"credentials\":[{\"type\":\"password\",\"value\":\"${CTF_USER_PASSWORD}\",\"temporary\":false}]
+      }" 2>/dev/null || echo "    (exists)"
+    done
+
+    echo "=== Creating groups ==="
+    for group in finance-dept sales-dept ops-dept retail-admins; do
+      kc_api POST "/${REALM}/groups" -d "{\"name\":\"${group}\"}" 2>/dev/null || echo "  ${group} (exists)"
+    done
+
+    echo "=== Assigning users to groups ==="
+    assign_group() {
+      local user="$1" group="$2"
+      local user_id=$(kc_api GET "/${REALM}/users?username=${user}" | python3 -c "import sys,json;print(json.load(sys.stdin)[0]['id'])" 2>/dev/null)
+      local group_id=$(kc_api GET "/${REALM}/groups?search=${group}" | python3 -c "import sys,json;print([g for g in json.load(sys.stdin) if g['name']=='${group}'][0]['id'])" 2>/dev/null)
+      if [ -n "$user_id" ] && [ -n "$group_id" ]; then
+        kc_api PUT "/${REALM}/users/${user_id}/groups/${group_id}" 2>/dev/null
+        echo "  ${user} → ${group}"
+      fi
+    }
+    assign_group fred finance-dept
+    assign_group sally sales-dept
+    assign_group alex ops-dept
+    assign_group prelude retail-admins
+
+    echo "=== Creating SPIFFE audience scope ==="
+    kc_api POST "/${REALM}/client-scopes" -d '{
+      "name": "spiffe-mcp-aud",
+      "protocol": "openid-connect",
+      "attributes": {},
+      "protocolMappers": [{
+        "name": "spiffe-audience",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "config": {
+          "included.client.audience": "retail-mcp",
+          "id.token.claim": "true",
+          "access.token.claim": "true"
+        }
+      }]
+    }' 2>/dev/null || echo "  (exists)"
+
+    echo "=== Done ==="

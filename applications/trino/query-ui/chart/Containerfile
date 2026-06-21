@@ -1,0 +1,16 @@
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY precise/package.json precise/package-lock.json ./
+RUN npm clean-install
+COPY precise/ .
+RUN npx tsc && npx vite build --config vite.app.config.ts
+
+FROM nginx:alpine
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY --from=build /app/dist /usr/share/nginx/html
+RUN chmod -R g+rwX /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx && \
+    chown -R 1001:0 /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx
+ENV TRINO_UPSTREAM=trino.trino.svc.cluster.local:8080
+EXPOSE 8080
+USER 1001
+CMD ["/bin/sh", "-c", "envsubst '${TRINO_UPSTREAM}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]

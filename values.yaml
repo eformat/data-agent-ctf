@@ -1,0 +1,46 @@
+# data-agent-ctf — Retail Zero-Trust CTF Deployment
+#
+# One values file drives the entire deployment.
+# Override with: --set namespace=my-ctf --set tolerateGPU=true
+
+namespace: data-agent-ctf
+
+# true = everything in one namespace (multi-tenant friendly)
+# false = separate namespace per component (spicedb, trino, keycloak, etc.)
+singleNamespace: true
+
+# true = deploy a namespace-scoped ArgoCD in our namespace
+# false = use existing cluster-level ArgoCD (openshift-gitops)
+tenantArgoCD:
+  enabled: false
+
+# true = add nvidia.com/gpu:NoSchedule toleration to all deployments
+# allows scheduling on GPU nodes (useful when CPU nodes are constrained)
+tolerateGPU: false
+
+# Auto-detected from cluster if empty
+apps_domain: ""
+
+# LLM inference endpoint
+inference:
+  url: "http://maas.apps.ocp.cloud.rhai-tmm.dev/prelude-maas/qwen36-27b"
+  model: "qwen36-27b"
+
+# Container images
+images:
+  hermes: "quay.io/eformat/hermes-openshell:latest"
+  mcp: "quay.io/eformat/retail-mcp-server:latest"
+  openshell: "quay.io/eformat/openshell-gateway:0.0.62-h2ws"
+  toolbox: "quay.io/eformat/toolbox:latest"
+
+# CTF users
+users:
+  - name: fred
+    department: finance
+    group: finance-dept
+  - name: sally
+    department: sales
+    group: sales-dept
+  - name: alex
+    department: ops
+    group: ops-dept

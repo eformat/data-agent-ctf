@@ -1,0 +1,29 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+spec:
+  instances: 1
+  db:
+    vendor: postgres
+    host: keycloak-postgres-rw
+    usernameSecret:
+      name: keycloak-postgres-credentials
+      key: username
+    passwordSecret:
+      name: keycloak-postgres-credentials
+      key: password
+  http:
+    tlsSecret: keycloak-tls
+  hostname:
+    strict: false
+  proxy:
+    headers: xforwarded
+  unsupported:
+    podTemplate:
+      spec:
+        tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists
+# Secret keycloak-postgres-credentials is in ../../secrets.enc.yaml (sops encrypted)

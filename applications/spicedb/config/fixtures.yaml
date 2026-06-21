@@ -1,0 +1,153 @@
+# Acme Retail Corp — SpiceDB Relationship Fixtures
+#
+# Maps real OpenShift users (prelude2 cluster) to departments and catalogs.
+#
+# Users (Keycloak OIDC):
+#   fred    = finance-analyst (Claude agent)
+#   sally   = sales-rep       (Hermes agent)
+#   alex    = ops-manager     (OpenClaw agent)
+#   prelude = org admin       (cross-department access)
+#
+# Load with: ./load-fixtures.sh
+
+relationships:
+  # ─── Organization ──────────────────────────────────────────────
+  - resource: "organization:acme-retail"
+    relation: admin
+    subject: "user:prelude"
+  - resource: "organization:acme-retail"
+    relation: member
+    subject: "user:fred"
+  - resource: "organization:acme-retail"
+    relation: member
+    subject: "user:sally"
+  - resource: "organization:acme-retail"
+    relation: member
+    subject: "user:alex"
+
+  # ─── Departments ───────────────────────────────────────────────
+  - resource: "department:finance"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "department:finance"
+    relation: member
+    subject: "user:fred"
+
+  - resource: "department:sales"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "department:sales"
+    relation: member
+    subject: "user:sally"
+
+  - resource: "department:ops"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "department:ops"
+    relation: member
+    subject: "user:alex"
+
+  # ─── Catalogs ──────────────────────────────────────────────────
+  - resource: "catalog:finance"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "catalog:finance"
+    relation: department
+    subject: "department:finance"
+  - resource: "catalog:finance"
+    relation: reader
+    subject: "department:finance#member"
+
+  - resource: "catalog:sales"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "catalog:sales"
+    relation: department
+    subject: "department:sales"
+  - resource: "catalog:sales"
+    relation: reader
+    subject: "department:sales#member"
+
+  - resource: "catalog:ops"
+    relation: organization
+    subject: "organization:acme-retail"
+  - resource: "catalog:ops"
+    relation: department
+    subject: "department:ops"
+  - resource: "catalog:ops"
+    relation: reader
+    subject: "department:ops#member"
+
+  # ─── Datasets ──────────────────────────────────────────────────
+  # Finance
+  - resource: "dataset:revenue"
+    relation: catalog
+    subject: "catalog:finance"
+  - resource: "dataset:expenses"
+    relation: catalog
+    subject: "catalog:finance"
+  - resource: "dataset:margins"
+    relation: catalog
+    subject: "catalog:finance"
+  - resource: "dataset:forecasts"
+    relation: catalog
+    subject: "catalog:finance"
+
+  # Sales
+  - resource: "dataset:orders"
+    relation: catalog
+    subject: "catalog:sales"
+  - resource: "dataset:pipeline"
+    relation: catalog
+    subject: "catalog:sales"
+  - resource: "dataset:customers"
+    relation: catalog
+    subject: "catalog:sales"
+  - resource: "dataset:acquisition_costs"
+    relation: catalog
+    subject: "catalog:sales"
+
+  # Operations
+  - resource: "dataset:inventory"
+    relation: catalog
+    subject: "catalog:ops"
+  - resource: "dataset:shipments"
+    relation: catalog
+    subject: "catalog:ops"
+  - resource: "dataset:warehouses"
+    relation: catalog
+    subject: "catalog:ops"
+  - resource: "dataset:returns"
+    relation: catalog
+    subject: "catalog:ops"
+
+# ─── Demo Scenarios ────────────────────────────────────────────
+demo_scenarios:
+  1_same_department_access:
+    description: "fred queries revenue → ALLOWED (finance dept member)"
+    check: "zed permission check dataset:revenue query user:fred --insecure"
+    expected: "HAS_PERMISSION"
+
+  2_cross_department_deny:
+    description: "fred queries orders → DENIED (not sales dept member)"
+    check: "zed permission check dataset:orders query user:fred --insecure"
+    expected: "NO_PERMISSION"
+
+  3_admin_override:
+    description: "prelude queries any dataset → ALLOWED (org admin)"
+    check: "zed permission check dataset:orders query user:prelude --insecure"
+    expected: "HAS_PERMISSION"
+
+  4_grant_cross_department:
+    description: "Grant fred read on sales catalog, then check orders access"
+    steps:
+      - "zed relationship create catalog:sales reader user:fred --insecure"
+      - "zed permission check dataset:orders query user:fred --insecure"
+    expected: "HAS_PERMISSION"
+
+  5_revoke_cross_department:
+    description: "Revoke the cross-department grant, verify access removed"
+    steps:
+      - "zed relationship delete catalog:sales reader user:fred --insecure"
+      - "zed permission check dataset:orders query user:fred --insecure"
+    expected: "NO_PERMISSION"

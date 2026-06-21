@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spicedb-schema-load
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: loader
+          image: quay.io/eformat/toolbox:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              SPICEDB_ENDPOINT="${SPICEDB_HOST}:${SPICEDB_PORT}"
+              echo "Waiting for SpiceDB at ${SPICEDB_ENDPOINT}..."
+              for i in $(seq 1 60); do
+                if zed context set ctf --endpoint "${SPICEDB_ENDPOINT}" --token "${SPICEDB_TOKEN}" --insecure 2>/dev/null; then
+                  if zed schema read --insecure 2>/dev/null; then
+                    break
+                  fi
+                fi
+                sleep 5
+              done
+
+              echo "Loading schema..."
+              zed schema write --insecure /config/schema.zed
+
+              echo "Loading fixtures..."
+              python3 -c "
+              import yaml, subprocess
+              with open('/config/fixtures.yaml') as f:
+                  data = yaml.safe_load(f)
+              for rel in data.get('relationships', []):
+                  resource = rel['resource']
+                  relation = rel['relation']
+                  subject = rel['subject']
+                  cmd = ['zed', 'relationship', 'create', resource, relation, subject, '--insecure']
+                  r = subprocess.run(cmd, capture_output=True, text=True)
+                  status = 'OK' if r.returncode == 0 else 'EXISTS' if 'already' in r.stderr else 'FAIL'
+                  print(f'  {status}: {resource}#{relation}@{subject}')
+              "
+              echo "Done"
+          env:
+            - name: SPICEDB_HOST
+              value: "dev-spicedb"
+            - name: SPICEDB_PORT
+              value: "50051"
+            - name: SPICEDB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: spicedb-token
+                  key: SPICEDB_TOKEN
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: spicedb-config-files
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spicedb-config-files
+data:
+  schema.zed: |
+    PLACEHOLDER
+  fixtures.yaml: |
+    PLACEHOLDER

@@ -1,0 +1,49 @@
+---
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: data-agent-ctf
+  namespace: data-agent-ctf
+spec:
+  server:
+    autoscale:
+      enabled: false
+    grpc:
+      ingress:
+        enabled: false
+    ingress:
+      enabled: false
+    route:
+      enabled: true
+      tls:
+        termination: reencrypt
+  repo:
+    env:
+      - name: SOPS_AGE_KEY_FILE
+        value: /sops-age/age-key.txt
+    volumes:
+      - name: sops-age-key
+        secret:
+          secretName: sops-age-key
+    volumeMounts:
+      - name: sops-age-key
+        mountPath: /sops-age
+    initContainers:
+      - name: install-sops
+        image: quay.io/eformat/toolbox:latest
+        command: [sh, -c]
+        args:
+          - cp /usr/local/bin/sops /custom-tools/ &&
+            cp /usr/local/bin/kustomize /custom-tools/
+        volumeMounts:
+          - name: custom-tools
+            mountPath: /custom-tools
+  configManagementPlugins: |
+    - name: sops-age-kustomize
+      generate:
+        command: [sh, -c]
+        args:
+          - kustomize build . | sops --decrypt --input-type yaml --output-type yaml /dev/stdin
+  sourceNamespaces:
+    - data-agent-ctf
+  resourceTrackingMethod: annotation

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Kagenti operator — deployed via Helm in ArgoCD.
+# Override the kagenti app-of-apps entry to use Helm source:
+#   source:
+#     chart: kagenti
+#     repoURL: oci://ghcr.io/kagenti/charts  (or local path)
+#     helm:
+#       valuesObject:
+#         openshift: true
+#         components:
+#           agentOperator:
+#             enabled: true
+#           agentNamespaces:
+#             enabled: false
+#           mcpGateway:
+#             enabled: false
+#           ui:
+#             enabled: false
+resources: []
