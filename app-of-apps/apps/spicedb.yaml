@@ -17,6 +17,11 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: data-agent-ctf
+  ignoreDifferences:
+    - group: authzed.com
+      kind: SpiceDBCluster
+      jsonPointers:
+        - /spec/config/datastoreBootstrapFiles
   syncPolicy:
     automated:
       prune: true
