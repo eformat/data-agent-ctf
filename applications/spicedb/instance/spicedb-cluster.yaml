@@ -6,6 +6,7 @@ metadata:
 spec:
   config:
     datastoreEngine: postgres
+    httpEnabled: "true"
   secretName: spicedb-config
   patches:
     - kind: Deployment
