@@ -122,7 +122,7 @@ data:
     trino_exec "CREATE TABLE IF NOT EXISTS ops.analytics.returns (return_id VARCHAR, order_id VARCHAR, sku VARCHAR, return_date DATE, reason VARCHAR, refund_amount DOUBLE)" ops
 
     echo "=== Loading sample data ==="
-    pip install -q trino 2>/dev/null
+    pip install -q trino
     python3 /data/load-data.py --host "${TRINO_HOST}" --port "${TRINO_PORT}"
 
     echo "=== Planting CTF flags ==="
