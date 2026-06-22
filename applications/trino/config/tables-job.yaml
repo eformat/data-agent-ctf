@@ -72,10 +72,13 @@ data:
     done
 
     echo "=== Creating Nessie branches ==="
+    MAIN_HASH=$(curl -sf "${NESSIE_URL}/api/v2/trees/main" | python3 -c "import sys,json; print(json.load(sys.stdin)['reference']['hash'])")
     for branch in finance sales ops; do
-      curl -sf -X POST "${NESSIE_URL}/api/v2/trees" \
+      resp=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${NESSIE_URL}/api/v2/trees?name=${branch}&type=BRANCH" \
         -H "Content-Type: application/json" \
-        -d "{\"type\":\"BRANCH\",\"name\":\"${branch}\"}" 2>/dev/null || echo "  ${branch} (exists)"
+        -d "{\"type\":\"BRANCH\",\"name\":\"main\",\"hash\":\"${MAIN_HASH}\"}")
+      if [ "$resp" = "200" ]; then echo "  ${branch} (created)"
+      else echo "  ${branch} (exists)"; fi
     done
 
     echo "=== Creating MinIO warehouse bucket ==="
@@ -89,12 +92,21 @@ data:
 
     echo "=== Creating schemas ==="
     trino_exec() {
-      curl -sf -X POST "http://${TRINO_HOST}:${TRINO_PORT}/v1/statement" \
+      local sql="$1" catalog="$2"
+      local resp next state
+      resp=$(curl -s -X POST "http://${TRINO_HOST}:${TRINO_PORT}/v1/statement" \
         -H "X-Trino-User: setup" \
-        -H "X-Trino-Catalog: $2" \
+        -H "X-Trino-Catalog: ${catalog}" \
         -H "X-Trino-Schema: analytics" \
-        -d "$1" >/dev/null
-      sleep 1
+        -d "$sql")
+      next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
+      while [ -n "$next" ] && [ "$next" != "None" ]; do
+        sleep 1
+        resp=$(curl -s "$next")
+        next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
+        state=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stats',{}).get('state',''))" 2>/dev/null)
+        [ "$state" = "FINISHED" ] && break
+      done
     }
 
     for catalog in finance sales ops; do
