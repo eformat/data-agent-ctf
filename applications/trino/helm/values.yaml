@@ -3,6 +3,8 @@
 # Three Iceberg catalogs: finance, sales, ops
 # Single-node cluster: coordinator-only (0 workers)
 
+fullnameOverride: trino
+
 server:
   workers: 0
   config:

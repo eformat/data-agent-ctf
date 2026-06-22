@@ -6,7 +6,7 @@ image:
 
 replicas: 1
 
-trinoUpstream: retail-ctf-trino-helm-trino:8080
+trinoUpstream: trino:8080
 
 service:
   port: 8080
