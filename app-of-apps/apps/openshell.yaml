@@ -30,6 +30,9 @@ spec:
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/routes
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      path: applications/openshell/netpol
   destination:
     server: https://kubernetes.default.svc
     namespace: data-agent-ctf
