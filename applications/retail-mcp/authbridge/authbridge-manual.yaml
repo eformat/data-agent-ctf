@@ -10,8 +10,8 @@ metadata:
   namespace: openshell
 data:
   SPIRE_ENABLED: "true"
-  KEYCLOAK_URL: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com"
-  KEYCLOAK_REALM: "prelude-m6wl4-vs9lb"
+  KEYCLOAK_URL: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+  KEYCLOAK_REALM: "retail-ctf"
   KEYCLOAK_TOKEN_EXCHANGE_ENABLED: "true"
   KEYCLOAK_CLIENT_REGISTRATION_ENABLED: "true"
 ---
@@ -67,9 +67,9 @@ data:
         plugins:
           - name: jwt-validation
             config:
-              issuer: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb"
-              keycloak_url: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com"
-              keycloak_realm: "prelude-m6wl4-vs9lb"
+              issuer: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+              keycloak_url: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+              keycloak_realm: "retail-ctf"
     routes:
       file: "/etc/authproxy/routes.yaml"
 
@@ -82,8 +82,8 @@ metadata:
   namespace: openshell
 type: Opaque
 stringData:
-  TOKEN_URL: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb/protocol/openid-connect/token"
-  ISSUER: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb"
+  TOKEN_URL: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf/protocol/openid-connect/token"
+  ISSUER: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
   TARGET_AUDIENCE: "retail-mcp"
   TARGET_SCOPES: "openid"
 
