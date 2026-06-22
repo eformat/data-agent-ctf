@@ -15,13 +15,6 @@ data:
   KEYCLOAK_TOKEN_EXCHANGE_ENABLED: "true"
   KEYCLOAK_CLIENT_REGISTRATION_ENABLED: "true"
 ---
-# Keycloak admin credentials — create at deploy time, NOT in git.
-# deploy-kagenti.sh creates this Secret from env vars.
-# Example:
-#   oc create secret generic authbridge-keycloak-admin -n openshell \
-#     --from-literal=KEYCLOAK_ADMIN_USERNAME="$KEYCLOAK_ADMIN_USER" \
-#     --from-literal=KEYCLOAK_ADMIN_PASSWORD="$KEYCLOAK_ADMIN_PASSWORD"
----
 # SPIFFE Helper config — reads SVID from SPIRE agent socket
 apiVersion: v1
 kind: ConfigMap
