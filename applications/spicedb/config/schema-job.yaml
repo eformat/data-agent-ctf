@@ -17,8 +17,8 @@ spec:
           operator: Exists
       containers:
         - name: loader
-          image: quay.io/eformat/toolbox:latest
-          command: ["/bin/bash", "-c"]
+          image: authzed/zed:latest
+          command: ["/bin/sh", "-c"]
           args:
             - |
               set -e
@@ -37,19 +37,16 @@ spec:
               zed schema write --insecure /config/schema.zed
 
               echo "Loading fixtures..."
-              python3 -c "
-              import yaml, subprocess
-              with open('/config/fixtures.yaml') as f:
-                  data = yaml.safe_load(f)
-              for rel in data.get('relationships', []):
-                  resource = rel['resource']
-                  relation = rel['relation']
-                  subject = rel['subject']
-                  cmd = ['zed', 'relationship', 'create', resource, relation, subject, '--insecure']
-                  r = subprocess.run(cmd, capture_output=True, text=True)
-                  status = 'OK' if r.returncode == 0 else 'EXISTS' if 'already' in r.stderr else 'FAIL'
-                  print(f'  {status}: {resource}#{relation}@{subject}')
-              "
+              while IFS= read -r line; do
+                resource=$(echo "$line" | cut -d'|' -f1)
+                relation=$(echo "$line" | cut -d'|' -f2)
+                subject=$(echo "$line" | cut -d'|' -f3)
+                if zed relationship create "$resource" "$relation" "$subject" --insecure 2>/dev/null; then
+                  echo "  OK: ${resource}#${relation}@${subject}"
+                else
+                  echo "  EXISTS: ${resource}#${relation}@${subject}"
+                fi
+              done < /config/fixtures.txt
               echo "Done"
           env:
             - name: SPICEDB_HOST

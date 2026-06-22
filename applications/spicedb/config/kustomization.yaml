@@ -7,6 +7,6 @@ configMapGenerator:
   - name: spicedb-config-files
     files:
       - schema.zed
-      - fixtures.yaml
+      - fixtures.txt
 generatorOptions:
   disableNameSuffixHash: true
