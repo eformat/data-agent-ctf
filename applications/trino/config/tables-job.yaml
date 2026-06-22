@@ -105,7 +105,7 @@ data:
         resp=$(curl -s "$next")
         next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
         state=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stats',{}).get('state',''))" 2>/dev/null)
-        [ "$state" = "FINISHED" ] && break
+        if [ "$state" = "FINISHED" ]; then break; fi
       done
     }
 
@@ -161,7 +161,7 @@ data:
         resp=$(curl -s "$next")
         next=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nextUri',''))" 2>/dev/null)
         state=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stats',{}).get('state',''))" 2>/dev/null)
-        [ "$state" = "FINISHED" ] && break
+        if [ "$state" = "FINISHED" ]; then break; fi
       done
       echo "  planted"
     }
