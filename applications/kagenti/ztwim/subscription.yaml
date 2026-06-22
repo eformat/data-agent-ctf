@@ -12,7 +12,7 @@ metadata:
   name: openshift-zero-trust-workload-identity-manager
   namespace: openshift-zero-trust-workload-identity-manager
 spec:
-  channel: stable
+  channel: stable-v1
   installPlanApproval: Automatic
   name: openshift-zero-trust-workload-identity-manager
   source: redhat-operators
