@@ -9,11 +9,33 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  name: keycloak-ca
+spec:
+  isCA: true
+  secretName: keycloak-ca-secret
+  commonName: keycloak-ca
+  issuerRef:
+    name: keycloak-selfsigned
+    kind: Issuer
+  duration: 87600h
+  renewBefore: 720h
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: keycloak-ca-issuer
+spec:
+  ca:
+    secretName: keycloak-ca-secret
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
   name: keycloak-tls
 spec:
   secretName: keycloak-tls
   issuerRef:
-    name: keycloak-selfsigned
+    name: keycloak-ca-issuer
     kind: Issuer
   dnsNames:
     - keycloak-service
