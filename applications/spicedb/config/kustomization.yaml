@@ -5,7 +5,6 @@ resources:
   - schema-job.yaml
 configMapGenerator:
   - name: spicedb-config-files
-    behavior: replace
     files:
       - schema.zed
       - fixtures.yaml

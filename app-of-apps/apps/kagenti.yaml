@@ -39,6 +39,7 @@ spec:
       targetRevision: main
       path: charts/kagenti
       helm:
+        releaseName: kagenti
         valuesObject:
           openshift: true
           components:

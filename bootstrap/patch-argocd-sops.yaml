@@ -1,0 +1,50 @@
+---
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: global-policy
+  namespace: openshift-gitops
+spec:
+  repo:
+    sidecarContainers:
+      - name: sops-age-kustomize
+        command:
+          - /var/run/argocd/argocd-cmp-server
+        image: quay.io/eformat/argocd-vault-sidecar:2.14.13
+        imagePullPolicy: Always
+        env:
+          - name: SOPS_AGE_KEY_FILE
+            value: /sops/age-key.txt
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+          - mountPath: /var/run/argocd
+            name: var-files
+          - mountPath: /home/argocd/cmp-server/config
+            name: sops-age-kustomize-config
+          - mountPath: /home/argocd/cmp-server/plugins
+            name: plugins
+          - mountPath: /tmp
+            name: cmp-tmp-sops
+          - mountPath: /sops
+            name: sops-age-key
+    volumes:
+      - name: sops-age-kustomize-config
+        configMap:
+          name: argocd-sops-age-kustomize
+          items:
+            - key: plugin.yaml
+              mode: 0775
+              path: plugin.yaml
+      - name: cmp-tmp-sops
+        emptyDir: {}
+      - name: sops-age-key
+        secret:
+          secretName: sops-age-key

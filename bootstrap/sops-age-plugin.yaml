@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-sops-age-kustomize
+  namespace: openshift-gitops
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: sops-age-kustomize
+    spec:
+      generate:
+        command: ["bash", "-c"]
+        args:
+          - |
+            set -euo pipefail
+            for f in $(find . -name '*.enc.yaml' -o -name '*.enc.yml'); do
+              sops --decrypt --in-place "$f"
+            done
+            kustomize build .

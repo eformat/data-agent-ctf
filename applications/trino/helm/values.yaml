@@ -16,10 +16,6 @@ coordinator:
       includeCoordinator: true
 
 catalogs:
-  # Null out upstream defaults we don't need
-  llm: null
-  tpcds: null
-  lakehouse: null
   tpch: |
     connector.name=tpch
     tpch.splits-per-node=4

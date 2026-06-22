@@ -65,7 +65,46 @@ else
   echo "WARNING: age-key.txt not found — sops secrets won't decrypt"
 fi
 
-# 4. Tenant ArgoCD (optional)
+# 4. Configure sops-age-kustomize CMP plugin on ArgoCD repo-server
+echo "--- Configuring sops-age-kustomize CMP plugin ---"
+oc apply -f "${REPO_DIR}/bootstrap/sops-age-plugin.yaml"
+
+ARGOCD_NAME=$(oc get argocd -n "${ARGOCD_NS}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+if [ -n "$ARGOCD_NAME" ]; then
+  # Check if sidecar already exists
+  if ! oc get argocd "${ARGOCD_NAME}" -n "${ARGOCD_NS}" -o jsonpath='{.spec.repo.sidecarContainers[*].name}' 2>/dev/null | grep -q sops-age-kustomize; then
+    echo "  Adding sops-age-kustomize sidecar to ArgoCD ${ARGOCD_NAME}..."
+    oc patch argocd "${ARGOCD_NAME}" -n "${ARGOCD_NS}" --type=json -p='[
+      {"op":"add","path":"/spec/repo/sidecarContainers/-","value":{
+        "name":"sops-age-kustomize",
+        "command":["/var/run/argocd/argocd-cmp-server"],
+        "image":"quay.io/eformat/argocd-vault-sidecar:2.14.13",
+        "imagePullPolicy":"Always",
+        "env":[{"name":"SOPS_AGE_KEY_FILE","value":"/sops/age-key.txt"}],
+        "securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},
+        "volumeMounts":[
+          {"mountPath":"/var/run/argocd","name":"var-files"},
+          {"mountPath":"/home/argocd/cmp-server/config","name":"sops-age-kustomize-config"},
+          {"mountPath":"/home/argocd/cmp-server/plugins","name":"plugins"},
+          {"mountPath":"/tmp","name":"cmp-tmp-sops"},
+          {"mountPath":"/sops","name":"sops-age-key"}
+        ]
+      }},
+      {"op":"add","path":"/spec/repo/volumes/-","value":{"name":"sops-age-kustomize-config","configMap":{"name":"argocd-sops-age-kustomize","items":[{"key":"plugin.yaml","mode":509,"path":"plugin.yaml"}]}}},
+      {"op":"add","path":"/spec/repo/volumes/-","value":{"name":"cmp-tmp-sops","emptyDir":{}}},
+      {"op":"add","path":"/spec/repo/volumes/-","value":{"name":"sops-age-key","secret":{"secretName":"sops-age-key"}}}
+    ]'
+    echo "  Waiting for repo-server rollout..."
+    oc rollout status deployment/"${ARGOCD_NAME}"-repo-server -n "${ARGOCD_NS}" --timeout=120s 2>/dev/null || true
+  else
+    echo "  sops-age-kustomize sidecar already configured"
+  fi
+else
+  echo "WARNING: No ArgoCD CR found in ${ARGOCD_NS} — sops plugin not configured"
+fi
+
+# 5. Tenant ArgoCD (optional)
+#    (Kept separate from sops setup — runs only when --tenant-argocd is passed)
 if $TENANT_ARGOCD; then
   echo "--- Deploying tenant ArgoCD ---"
   # Ensure OpenShift GitOps operator is installed
@@ -86,7 +125,7 @@ if $TENANT_ARGOCD; then
   done
 fi
 
-# 5. Apply app-of-apps
+# 6. Apply app-of-apps
 echo "--- Deploying app-of-apps ---"
 sed -e "s|namespace: openshift-gitops|namespace: ${ARGOCD_NS}|" \
     -e "s|namespace: data-agent-ctf|namespace: ${NAMESPACE}|" \

@@ -20,5 +20,12 @@ spec:
   syncPolicy:
     automated:
       selfHeal: true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        maxDuration: 5m
+        factor: 2
     syncOptions:
       - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
