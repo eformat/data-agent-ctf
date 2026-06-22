@@ -81,7 +81,7 @@ spec:
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev-spicedb:50051
+              value: dev:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -205,7 +205,7 @@ spec:
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev-spicedb:50051
+              value: dev:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -329,7 +329,7 @@ spec:
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev-spicedb:50051
+              value: dev:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:

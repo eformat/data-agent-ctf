@@ -53,7 +53,7 @@ spec:
               echo "Done"
           env:
             - name: SPICEDB_HOST
-              value: "dev-spicedb"
+              value: "dev"
             - name: SPICEDB_PORT
               value: "50051"
             - name: SPICEDB_TOKEN
