@@ -1,4 +1,11 @@
 ---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-zero-trust-workload-identity-manager
+  namespace: openshift-zero-trust-workload-identity-manager
+spec: {}
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
