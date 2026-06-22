@@ -2,10 +2,34 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-keycloak
+  name: retail-ctf-keycloak-operators
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/eformat/data-agent-ctf.git
+    targetRevision: main
+    path: applications/keycloak/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-agent-ctf
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-ctf-keycloak
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -21,7 +45,7 @@ spec:
     automated:
       selfHeal: true
     retry:
-      limit: 10
+      limit: 20
       backoff:
         duration: 15s
         maxDuration: 5m

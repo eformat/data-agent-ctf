@@ -77,11 +77,11 @@ spec:
             - containerPort: 8080
           env:
             - name: TRINO_QUERY_HOST
-              value: trino.trino.svc.cluster.local
+              value: retail-ctf-trino-helm-trino
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev.spicedb.svc.cluster.local:50051
+              value: dev-spicedb:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -90,7 +90,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb"
+              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
@@ -201,11 +201,11 @@ spec:
             - containerPort: 8080
           env:
             - name: TRINO_QUERY_HOST
-              value: trino.trino.svc.cluster.local
+              value: retail-ctf-trino-helm-trino
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev.spicedb.svc.cluster.local:50051
+              value: dev-spicedb:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -214,7 +214,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb"
+              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
@@ -325,11 +325,11 @@ spec:
             - containerPort: 8080
           env:
             - name: TRINO_QUERY_HOST
-              value: trino.trino.svc.cluster.local
+              value: retail-ctf-trino-helm-trino
             - name: TRINO_QUERY_PORT
               value: "8080"
             - name: SPICEDB_ENDPOINT
-              value: dev.spicedb.svc.cluster.local:50051
+              value: dev-spicedb:50051
             - name: SPICEDB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -338,7 +338,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb"
+              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
