@@ -1,0 +1,18 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spicedb-operator
+  namespace: spicedb-operator
+spec:
+  template:
+    spec:
+      containers:
+        - name: spicedb-operator
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi

@@ -4,3 +4,5 @@ kind: Kustomization
 resources:
   - https://github.com/authzed/spicedb-operator/releases/latest/download/bundle.yaml
   - scc-fix.yaml
+patches:
+  - path: memory-patch.yaml
