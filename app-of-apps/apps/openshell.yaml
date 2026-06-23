@@ -2,6 +2,38 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  name: retail-ctf-openshell-crd
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/eformat/data-agent-ctf.git
+    targetRevision: main
+    path: applications/openshell/crd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-agent-ctf
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
   name: retail-ctf-openshell
   namespace: openshift-gitops
   annotations:
@@ -37,9 +69,6 @@ spec:
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/netpol
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
-      path: applications/openshell/crd
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/scc
