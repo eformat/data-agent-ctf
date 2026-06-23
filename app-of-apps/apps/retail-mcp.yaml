@@ -16,7 +16,7 @@ spec:
     path: applications/retail-mcp
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   syncPolicy:
     automated:
       prune: true

@@ -15,11 +15,11 @@ network_policies:
   mcp:
     name: mcp-servers
     endpoints:
-      - host: retail-finance-mcp.data-agent-ctf.svc.cluster.local
+      - host: retail-finance-mcp.openshell.svc.cluster.local
         port: 9090
-      - host: retail-sales-mcp.data-agent-ctf.svc.cluster.local
+      - host: retail-sales-mcp.openshell.svc.cluster.local
         port: 9090
-      - host: retail-ops-mcp.data-agent-ctf.svc.cluster.local
+      - host: retail-ops-mcp.openshell.svc.cluster.local
         port: 9090
     binaries:
       - path: /opt/hermes/.venv/bin/python*
