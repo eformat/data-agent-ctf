@@ -1,0 +1,6 @@
+FROM registry.access.redhat.com/ubi10/ubi AS builder
+RUN curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
+
+FROM registry.access.redhat.com/ubi10/ubi-minimal
+COPY --from=builder /usr/bin/openshell /usr/bin/openshell
+RUN microdnf install -y --nodocs bash python3 && microdnf clean all
