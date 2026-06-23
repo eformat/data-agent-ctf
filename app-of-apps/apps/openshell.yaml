@@ -47,36 +47,11 @@ spec:
       chart: openshell
       targetRevision: "0.0.62"
       helm:
-        valuesObject:
-          fullnameOverride: openshell
-          image:
-            repository: quay.io/eformat/openshell-gateway
-            tag: 0.0.62-h2ws
-          certManager:
-            enabled: true
-            serverDnsNames:
-              - openshell
-              - openshell.data-agent-ctf.svc
-              - openshell.data-agent-ctf.svc.cluster.local
-              - localhost
-              - openshell.localhost
-              - "*.openshell.localhost"
-          server:
-            auth:
-              allowUnauthenticatedUsers: true
-            tls:
-              clientCaSecretName: ""
-          podSecurityContext:
-            fsGroup:
-          securityContext:
-            runAsUser:
-            runAsNonRoot: true
-          service:
-            type: ClusterIP
-          tolerations:
-            - effect: NoSchedule
-              key: nvidia.com/gpu
-              operator: Exists
+        valueFiles:
+          - $values/applications/openshell/helm-values/values.yaml
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      ref: values
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/routes
