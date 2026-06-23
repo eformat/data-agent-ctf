@@ -16,7 +16,7 @@ spec:
     path: applications/openshell/crd
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   syncPolicy:
     automated:
       prune: true
@@ -60,7 +60,7 @@ spec:
       path: applications/openshell/netpol
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   syncPolicy:
     automated:
       prune: true
