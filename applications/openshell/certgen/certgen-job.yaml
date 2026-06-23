@@ -70,7 +70,7 @@ spec:
 
               echo "=== Waiting for server TLS secret ==="
               for i in $(seq 1 30); do
-                if oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d | openssl x509 -noout 2>/dev/null; then
+                if oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' 2>/dev/null | grep -q '.'; then
                   echo "Secret ready"
                   break
                 fi
