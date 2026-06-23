@@ -45,7 +45,7 @@ spec:
   sources:
     - repoURL: oci://ghcr.io/nvidia/openshell/helm-chart
       chart: openshell
-      targetRevision: "*"
+      targetRevision: "0.0.62"
       helm:
         valuesObject:
           fullnameOverride: openshell
@@ -54,15 +54,21 @@ spec:
             tag: 0.0.62-h2ws
           certManager:
             enabled: true
+          server:
+            auth:
+              allowUnauthenticatedUsers: true
+            tls:
+              clientCaSecretName: ""
+          podSecurityContext:
+            fsGroup: null
+          securityContext:
+            runAsUser: null
           service:
             type: ClusterIP
           tolerations:
             - effect: NoSchedule
               key: nvidia.com/gpu
               operator: Exists
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
-      path: applications/openshell/config-patch
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/routes
