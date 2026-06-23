@@ -54,10 +54,16 @@ spec:
       ref: values
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
+      path: applications/openshell/certgen
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
       path: applications/openshell/routes
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/netpol
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      path: applications/openshell/scc
   destination:
     server: https://kubernetes.default.svc
     namespace: openshell

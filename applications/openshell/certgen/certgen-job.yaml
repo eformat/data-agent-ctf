@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openshell-certgen
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openshell-certgen
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["config.openshift.io"]
+    resources: ["ingresses"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openshell-certgen
+subjects:
+  - kind: ServiceAccount
+    name: openshell-certgen
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: openshell-certgen
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openshell-certgen-ingress
+subjects:
+  - kind: ServiceAccount
+    name: openshell-certgen
+    namespace: openshell
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-reader
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openshell-certgen
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 120
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: openshell-certgen
+      initContainers:
+        - name: generate-certs
+          image: quay.io/eformat/openshell-gateway:0.0.62-h2ws
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command: ["/usr/local/bin/openshell-gateway"]
+          args:
+            - generate-certs
+            - --server-secret-name=openshell-server-tls
+            - --client-secret-name=openshell-client-tls
+            - --jwt-secret-name=openshell-jwt-keys
+            - --server-san=openshell
+            - --server-san=openshell.openshell.svc
+            - --server-san=openshell.openshell.svc.cluster.local
+            - --server-san=localhost
+            - --server-san=openshell.localhost
+            - --server-san=*.openshell.localhost
+            - --server-san=*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: patch-routes
+          image: quay.io/eformat/openshell-deployer:latest
+          env:
+            - name: HOME
+              value: /tmp
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -uo pipefail
+              NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+              APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+
+              echo "=== Reading CA cert ==="
+              CA=$(oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d)
+              CA_JSON=$(echo "$CA" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+
+              echo "=== Patching routes ==="
+              for route in retail-finance retail-sales retail-ops; do
+                HOST="${route}.${APPS_DOMAIN}"
+                echo "  ${route} -> ${HOST}"
+                oc patch route "$route" -n "$NAMESPACE" --type=merge \
+                  -p "{\"spec\":{\"host\":\"${HOST}\",\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1 || echo "  (route not found yet — will be patched on next sync)"
+              done
+              echo "=== Done ==="

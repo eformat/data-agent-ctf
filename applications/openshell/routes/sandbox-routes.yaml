@@ -6,6 +6,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-finance.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
@@ -22,6 +23,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-sales.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
@@ -38,6 +40,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-ops.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
