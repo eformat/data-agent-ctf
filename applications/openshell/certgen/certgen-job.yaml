@@ -77,9 +77,6 @@ spec:
       initContainers:
         - name: delete-old-certs
           image: quay.io/eformat/openshell-deployer:latest
-          env:
-            - name: HOME
-              value: /tmp
           command: ["/bin/bash", "-c"]
           args:
             - |
@@ -87,6 +84,8 @@ spec:
                 oc delete secret "$s" -n "$POD_NAMESPACE" 2>/dev/null && echo "Deleted $s" || echo "$s not found"
               done
           env:
+            - name: HOME
+              value: /tmp
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
