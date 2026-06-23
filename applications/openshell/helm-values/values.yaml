@@ -17,6 +17,9 @@ server:
     allowUnauthenticatedUsers: true
   tls:
     clientCaSecretName: ""
+pkiInitJob:
+  serverDnsNames:
+    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
 podSecurityContext:
   fsGroup: 1000
 securityContext:
