@@ -64,7 +64,6 @@ data:
     # Get admin token
     get_token() {
       curl -sk -X POST "${KC}/realms/master/protocol/openid-connect/token" \
-        -d "grant_type=client_credentials&client_id=admin-cli" \
         -d "grant_type=password&username=${KEYCLOAK_ADMIN}&password=${KEYCLOAK_ADMIN_PASSWORD}&client_id=admin-cli" \
         | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])"
     }
