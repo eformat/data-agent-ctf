@@ -47,6 +47,7 @@ spec:
       chart: openshell
       targetRevision: "0.0.62"
       helm:
+        releaseName: openshell
         valueFiles:
           - $values/applications/openshell/helm-values/values.yaml
     - repoURL: https://github.com/eformat/data-agent-ctf.git
