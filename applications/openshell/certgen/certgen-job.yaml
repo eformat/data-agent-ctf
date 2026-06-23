@@ -3,11 +3,17 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: openshell-certgen
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: openshell-certgen
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -23,6 +29,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: openshell-certgen
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
 subjects:
   - kind: ServiceAccount
     name: openshell-certgen
@@ -35,6 +44,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: openshell-certgen-ingress
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
 subjects:
   - kind: ServiceAccount
     name: openshell-certgen
@@ -50,6 +62,7 @@ metadata:
   name: openshell-certgen
   annotations:
     argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-5"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: 3
