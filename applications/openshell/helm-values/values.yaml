@@ -12,18 +12,22 @@ certManager:
     - openshell.localhost
     - "*.openshell.localhost"
     - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+    - openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+grpcRoute:
+  enabled: false
+pkiInitJob:
+  serverDnsNames:
+    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+    - openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+podSecurityContext:
+  fsGroup: null
+securityContext:
+  runAsUser: null
 server:
   auth:
     allowUnauthenticatedUsers: true
   tls:
     clientCaSecretName: ""
-pkiInitJob:
-  serverDnsNames:
-    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
-podSecurityContext:
-  fsGroup: 1000
-securityContext:
-  runAsUser: 1000
 service:
   type: ClusterIP
 tolerations:
