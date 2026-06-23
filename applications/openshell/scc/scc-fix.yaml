@@ -1,8 +1,0 @@
----
-# No SCC override needed — gateway runs fine under restricted-v2
-# This file is kept as a placeholder for the kustomization resource list
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: openshell-scc-placeholder
-data: {}
