@@ -5,7 +5,7 @@ metadata:
   name: openshell-anyuid-scc
 subjects:
   - kind: ServiceAccount
-    name: retail-ctf-openshell
+    name: openshell
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
