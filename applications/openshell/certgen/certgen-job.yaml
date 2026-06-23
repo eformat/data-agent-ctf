@@ -97,6 +97,26 @@ spec:
             capabilities:
               drop: ["ALL"]
       containers:
+        - name: done
+          image: quay.io/eformat/openshell-deployer:latest
+          command: ["echo", "Certs generated"]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openshell-route-patch
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 60
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: openshell-certgen
+      containers:
         - name: patch-routes
           image: quay.io/eformat/openshell-deployer:latest
           env:
@@ -118,6 +138,6 @@ spec:
                 HOST="${route}.${APPS_DOMAIN}"
                 echo "  ${route} -> ${HOST}"
                 oc patch route "$route" -n "$NAMESPACE" --type=merge \
-                  -p "{\"spec\":{\"host\":\"${HOST}\",\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1 || echo "  (route not found yet — will be patched on next sync)"
+                  -p "{\"spec\":{\"host\":\"${HOST}\",\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1 || echo "  (route not found)"
               done
               echo "=== Done ==="
