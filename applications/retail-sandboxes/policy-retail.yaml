@@ -81,7 +81,7 @@ network_policies:
   keycloak:
     name: keycloak-oauth
     endpoints:
-      - host: keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+      - host: keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
         port: 443
     binaries:
       - path: /opt/hermes/.venv/bin/python*

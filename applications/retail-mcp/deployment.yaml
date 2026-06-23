@@ -90,7 +90,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
@@ -214,7 +214,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
@@ -338,7 +338,7 @@ spec:
             - name: SPICEDB_INSECURE
               value: "true"
             - name: OIDC_ISSUER
-              value: "https://keycloak-data-agent-ctf.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
           volumeMounts:
             - name: config
               mountPath: /config
