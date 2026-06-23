@@ -26,10 +26,6 @@ spec:
           env:
             - name: HERMES_IMAGE
               value: "quay.io/eformat/hermes-openshell:latest"
-            - name: OPENSHELL_GATEWAY_ENDPOINT
-              value: "https://retail-ctf-openshell:8080"
-            - name: OPENSHELL_GATEWAY_INSECURE
-              value: "true"
             - name: KEYCLOAK_ISSUER
               value: ""
             - name: KEYCLOAK_CLIENT_ID
@@ -63,10 +59,24 @@ data:
     #!/bin/bash
     set -euo pipefail
 
-    GATEWAY="${OPENSHELL_GATEWAY:-prelude2-final}"
+    GATEWAY_NAME="${OPENSHELL_GATEWAY:-ctf}"
+    GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell:8080}"
     APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "data-agent-ctf")
 
-    KEYCLOAK_ISSUER="${KEYCLOAK_ISSUER:-https://keycloak-$(oc get route keycloak -o jsonpath='{.spec.host}' 2>/dev/null)}"
+    KEYCLOAK_ISSUER="${KEYCLOAK_ISSUER:-https://keycloak-$(oc get route keycloak -n ${NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null)}"
+
+    echo "=== Registering gateway ==="
+    openshell gateway add --name "$GATEWAY_NAME" --local "$GATEWAY_ENDPOINT"
+
+    echo "=== Copying mTLS certs from cluster secrets ==="
+    MTLS_DIR="$HOME/.config/openshell/gateways/${GATEWAY_NAME}/mtls"
+    oc get secret openshell-ca-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$MTLS_DIR/ca.crt"
+    oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.crt}' | base64 -d > "$MTLS_DIR/tls.crt"
+    oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.key}' | base64 -d > "$MTLS_DIR/tls.key"
+
+    echo "=== Checking gateway ==="
+    openshell status -g "$GATEWAY_NAME"
 
     for dept in finance sales ops; do
       name="retail-${dept}"
@@ -84,10 +94,10 @@ data:
       done
       echo "retail-${dept}" > "$UPLOAD_DIR/active_profile"
 
-      openshell sandbox delete "$name" -g "$GATEWAY" 2>/dev/null || true
+      openshell sandbox delete "$name" -g "$GATEWAY_NAME" 2>/dev/null || true
       sleep 3
 
-      openshell sandbox create -g "$GATEWAY" \
+      openshell sandbox create -g "$GATEWAY_NAME" \
         --name "$name" \
         --from "$HERMES_IMAGE" \
         --upload "$UPLOAD_DIR:/sandbox/.hermes" \
@@ -103,13 +113,13 @@ data:
 
       # Wait for Ready
       for i in $(seq 1 40); do
-        status=$(openshell sandbox list -g "$GATEWAY" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}')
-        [ "$status" = "Ready" ] && break
+        status=$(openshell sandbox list -g "$GATEWAY_NAME" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}')
+        if [ "$status" = "Ready" ]; then break; fi
         sleep 10
       done
 
       # Expose
-      openshell service expose "$name" 9119 -g "$GATEWAY" 2>&1 || true
+      openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
 
       rm -rf "$UPLOAD_DIR" "/tmp/policy-${dept}.yaml"
       echo "  ${name}: https://${name}.${APPS_DOMAIN}"
