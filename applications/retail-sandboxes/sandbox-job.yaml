@@ -152,7 +152,7 @@ data:
                HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
                HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
                HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
-               /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
+               /usr/local/bin/hermes-start.sh
 
       # Wait for Ready
       for i in $(seq 1 40); do
