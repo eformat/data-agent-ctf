@@ -4,6 +4,14 @@ image:
   tag: 0.0.62-h2ws
 certManager:
   enabled: true
+  serverDnsNames:
+    - openshell
+    - openshell.openshell.svc
+    - openshell.openshell.svc.cluster.local
+    - localhost
+    - openshell.localhost
+    - "*.openshell.localhost"
+    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
 server:
   auth:
     allowUnauthenticatedUsers: true

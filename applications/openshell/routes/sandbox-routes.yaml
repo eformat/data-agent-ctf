@@ -1,8 +1,4 @@
 ---
-# Routes for the 3 retail sandboxes.
-# APPS_DOMAIN is auto-populated by the sandbox deploy Job.
-# These routes use reencrypt TLS with the OpenShell server CA.
----
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -10,7 +6,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
-  # host: retail-finance.${APPS_DOMAIN}  # set by deploy job
+  host: retail-finance.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
@@ -27,6 +23,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-sales.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
@@ -43,6 +40,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-ops.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
