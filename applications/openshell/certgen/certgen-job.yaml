@@ -3,17 +3,11 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: openshell-certgen
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: openshell-certgen
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -24,17 +18,11 @@ rules:
   - apiGroups: ["route.openshift.io"]
     resources: ["routes/custom-host"]
     verbs: ["create", "update"]
-  - apiGroups: ["config.openshift.io"]
-    resources: ["ingresses"]
-    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: openshell-certgen
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
 subjects:
   - kind: ServiceAccount
     name: openshell-certgen
@@ -47,9 +35,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: openshell-certgen-ingress
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
 subjects:
   - kind: ServiceAccount
     name: openshell-certgen
@@ -63,10 +48,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: openshell-certgen
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-5"
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: 3
   activeDeadlineSeconds: 120
@@ -75,21 +56,6 @@ spec:
       restartPolicy: OnFailure
       serviceAccountName: openshell-certgen
       initContainers:
-        - name: delete-old-certs
-          image: quay.io/eformat/openshell-deployer:latest
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              for s in openshell-server-tls openshell-client-tls openshell-jwt-keys; do
-                oc delete secret "$s" -n "$POD_NAMESPACE" 2>/dev/null && echo "Deleted $s" || echo "$s not found"
-              done
-          env:
-            - name: HOME
-              value: /tmp
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
         - name: generate-certs
           image: quay.io/eformat/openshell-gateway:0.0.62-h2ws
           env:
@@ -114,26 +80,6 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-      containers:
-        - name: done
-          image: quay.io/eformat/openshell-deployer:latest
-          command: ["echo", "Certs generated"]
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: openshell-route-patch
-  annotations:
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/sync-wave: "5"
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-spec:
-  backoffLimit: 3
-  activeDeadlineSeconds: 60
-  template:
-    spec:
-      restartPolicy: OnFailure
-      serviceAccountName: openshell-certgen
       containers:
         - name: patch-routes
           image: quay.io/eformat/openshell-deployer:latest
