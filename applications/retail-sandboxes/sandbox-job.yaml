@@ -156,7 +156,7 @@ data:
 
       # Wait for Ready
       for i in $(seq 1 40); do
-        status=$(openshell sandbox list -g "$GATEWAY_NAME" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}')
+        status=$(openshell sandbox list -g "$GATEWAY_NAME" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}' || true)
         if [ "$status" = "Ready" ]; then break; fi
         sleep 10
       done

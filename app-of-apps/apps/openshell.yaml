@@ -38,6 +38,9 @@ spec:
       path: applications/openshell/netpol
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
+      path: applications/openshell/crd
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
       path: applications/openshell/scc
   ignoreDifferences:
     - group: ""
