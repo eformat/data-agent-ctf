@@ -106,14 +106,15 @@ data:
 
     KEYCLOAK_ISSUER="${KEYCLOAK_ISSUER:-https://keycloak-$(oc get route keycloak -n ${NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null)}"
 
-    echo "=== Registering gateway ==="
-    openshell gateway add --name "$GATEWAY_NAME" --local "$GATEWAY_ENDPOINT"
-
-    echo "=== Copying mTLS certs from cluster secrets ==="
+    echo "=== Setting up mTLS certs ==="
     MTLS_DIR="$HOME/.config/openshell/gateways/${GATEWAY_NAME}/mtls"
+    mkdir -p "$MTLS_DIR"
     oc get secret openshell-ca-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$MTLS_DIR/ca.crt"
     oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.crt}' | base64 -d > "$MTLS_DIR/tls.crt"
     oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.key}' | base64 -d > "$MTLS_DIR/tls.key"
+
+    echo "=== Registering gateway ==="
+    openshell gateway add --name "$GATEWAY_NAME" --local "$GATEWAY_ENDPOINT"
 
     echo "=== Checking gateway ==="
     openshell status -g "$GATEWAY_NAME"
