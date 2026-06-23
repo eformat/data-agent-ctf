@@ -11,7 +11,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create", "delete"]
+    verbs: ["get"]
   - apiGroups: ["route.openshift.io"]
     resources: ["routes"]
     verbs: ["get", "patch", "update"]
@@ -47,39 +47,14 @@ roleRef:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: openshell-certgen
+  name: openshell-route-patch
 spec:
-  backoffLimit: 3
+  backoffLimit: 5
   activeDeadlineSeconds: 120
   template:
     spec:
       restartPolicy: OnFailure
       serviceAccountName: openshell-certgen
-      initContainers:
-        - name: generate-certs
-          image: quay.io/eformat/openshell-gateway:0.0.62-h2ws
-          env:
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          command: ["/usr/local/bin/openshell-gateway"]
-          args:
-            - generate-certs
-            - --server-secret-name=openshell-server-tls
-            - --client-secret-name=openshell-client-tls
-            - --jwt-secret-name=openshell-jwt-keys
-            - --server-san=openshell
-            - --server-san=openshell.openshell.svc
-            - --server-san=openshell.openshell.svc.cluster.local
-            - --server-san=localhost
-            - --server-san=openshell.localhost
-            - --server-san=*.openshell.localhost
-            - --server-san=*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
       containers:
         - name: patch-routes
           image: quay.io/eformat/openshell-deployer:latest
@@ -93,7 +68,16 @@ spec:
               NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
               APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
 
-              echo "=== Reading CA cert ==="
+              echo "=== Waiting for server TLS secret ==="
+              for i in $(seq 1 30); do
+                if oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d | openssl x509 -noout 2>/dev/null; then
+                  echo "Secret ready"
+                  break
+                fi
+                echo "  waiting... ($i/30)"
+                sleep 5
+              done
+
               CA=$(oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d)
               CA_JSON=$(echo "$CA" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 
