@@ -24,6 +24,8 @@ spec:
             - secretRef:
                 name: sandbox-secrets
           env:
+            - name: HOME
+              value: "/tmp"
             - name: HERMES_IMAGE
               value: "quay.io/eformat/hermes-openshell:latest"
             - name: KEYCLOAK_ISSUER
