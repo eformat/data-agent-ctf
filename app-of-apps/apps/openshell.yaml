@@ -22,6 +22,8 @@ spec:
             tag: 0.0.62-h2ws
           certManager:
             enabled: true
+          auth:
+            allowUnauthenticatedUsers: true
           service:
             type: ClusterIP
           tolerations:
