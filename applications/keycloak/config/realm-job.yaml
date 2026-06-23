@@ -30,6 +30,11 @@ spec:
                 secretKeyRef:
                   name: keycloak-initial-admin
                   key: password
+            - name: CTF_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: CTF_USER_PASSWORD
             - name: KEYCLOAK_URL
               value: "https://keycloak-service:8443"
             - name: REALM_NAME
