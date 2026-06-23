@@ -39,6 +39,12 @@ spec:
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/scc
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: openshell-config
+      jsonPointers:
+        - /data/gateway.toml
   destination:
     server: https://kubernetes.default.svc
     namespace: data-agent-ctf

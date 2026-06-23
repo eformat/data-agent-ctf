@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshell-config
+data:
+  auth-patch.toml: |
+    [openshell.gateway.auth]
+    allow_unauthenticated_users = true
