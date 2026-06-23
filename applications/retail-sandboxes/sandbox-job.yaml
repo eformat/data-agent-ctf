@@ -26,6 +26,10 @@ spec:
           env:
             - name: HERMES_IMAGE
               value: "quay.io/eformat/hermes-openshell:latest"
+            - name: OPENSHELL_GATEWAY_ENDPOINT
+              value: "https://retail-ctf-openshell:8080"
+            - name: OPENSHELL_GATEWAY_INSECURE
+              value: "true"
             - name: KEYCLOAK_ISSUER
               value: ""
             - name: KEYCLOAK_CLIENT_ID

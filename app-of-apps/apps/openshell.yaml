@@ -16,6 +16,7 @@ spec:
       targetRevision: "*"
       helm:
         valuesObject:
+          fullnameOverride: openshell
           image:
             repository: quay.io/eformat/openshell-gateway
             tag: 0.0.62-h2ws
