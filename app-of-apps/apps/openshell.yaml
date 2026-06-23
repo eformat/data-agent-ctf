@@ -22,14 +22,15 @@ spec:
             tag: 0.0.62-h2ws
           certManager:
             enabled: true
-          auth:
-            allowUnauthenticatedUsers: true
           service:
             type: ClusterIP
           tolerations:
             - effect: NoSchedule
               key: nvidia.com/gpu
               operator: Exists
+    - repoURL: https://github.com/eformat/data-agent-ctf.git
+      targetRevision: main
+      path: applications/openshell/config-patch
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/routes
@@ -42,12 +43,6 @@ spec:
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/scc
-  ignoreDifferences:
-    - group: ""
-      kind: ConfigMap
-      name: openshell-config
-      jsonPointers:
-        - /data/gateway.toml
   destination:
     server: https://kubernetes.default.svc
     namespace: data-agent-ctf
