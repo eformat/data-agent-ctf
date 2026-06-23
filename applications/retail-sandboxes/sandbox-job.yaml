@@ -102,7 +102,8 @@ data:
     set -uo pipefail
 
     GATEWAY_NAME="${OPENSHELL_GATEWAY:-ctf}"
-    GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell:8080}"
+    GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell.openshell.svc:8080}"
+    OPENSHELL_NS="${OPENSHELL_NAMESPACE:-openshell}"
     APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
     NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "data-agent-ctf")
 
@@ -111,9 +112,9 @@ data:
     echo "=== Setting up mTLS certs ==="
     MTLS_DIR="$HOME/.config/openshell/gateways/${GATEWAY_NAME}/mtls"
     mkdir -p "$MTLS_DIR"
-    oc get secret openshell-ca-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$MTLS_DIR/ca.crt"
-    oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.crt}' | base64 -d > "$MTLS_DIR/tls.crt"
-    oc get secret openshell-client-tls -n "$NAMESPACE" -o jsonpath='{.data.tls\.key}' | base64 -d > "$MTLS_DIR/tls.key"
+    oc get secret openshell-ca-tls -n "$OPENSHELL_NS" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$MTLS_DIR/ca.crt"
+    oc get secret openshell-client-tls -n "$OPENSHELL_NS" -o jsonpath='{.data.tls\.crt}' | base64 -d > "$MTLS_DIR/tls.crt"
+    oc get secret openshell-client-tls -n "$OPENSHELL_NS" -o jsonpath='{.data.tls\.key}' | base64 -d > "$MTLS_DIR/tls.key"
 
     echo "=== Registering gateway ==="
     openshell gateway add --name "$GATEWAY_NAME" --local "$GATEWAY_ENDPOINT"
