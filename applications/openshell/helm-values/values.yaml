@@ -10,9 +10,9 @@ server:
   tls:
     clientCaSecretName: ""
 podSecurityContext:
-  fsGroup: null
+  fsGroup: 1000
 securityContext:
-  runAsUser: null
+  runAsUser: 1000
 service:
   type: ClusterIP
 tolerations:
