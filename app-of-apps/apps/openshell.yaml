@@ -64,6 +64,12 @@ spec:
     - repoURL: https://github.com/eformat/data-agent-ctf.git
       targetRevision: main
       path: applications/openshell/scc
+  ignoreDifferences:
+    - group: route.openshift.io
+      kind: Route
+      jsonPointers:
+        - /spec/tls/destinationCACertificate
+        - /spec/host
   destination:
     server: https://kubernetes.default.svc
     namespace: openshell
