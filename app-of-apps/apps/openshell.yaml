@@ -67,9 +67,10 @@ spec:
             tls:
               clientCaSecretName: ""
           podSecurityContext:
-            fsGroup: null
+            fsGroup:
           securityContext:
-            runAsUser: null
+            runAsUser:
+            runAsNonRoot: true
           service:
             type: ClusterIP
           tolerations:
