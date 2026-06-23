@@ -3,9 +3,7 @@ kind: Namespace
 apiVersion: v1
 metadata:
   name: agent-sandbox-system
-
 ---
-
 kind: ServiceAccount
 apiVersion: v1
 metadata:
@@ -13,9 +11,7 @@ metadata:
   namespace: agent-sandbox-system
   labels:
     app: agent-sandbox-controller
-
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -28,9 +24,7 @@ roleRef:
   kind: ClusterRole
   name: agent-sandbox-controller
   apiGroup: rbac.authorization.k8s.io
-
 ---
-
 kind: Service
 apiVersion: v1
 metadata:
@@ -46,9 +40,7 @@ spec:
     port: 8080
     targetPort: metrics
     protocol: TCP
-
 ---
-
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -79,7 +71,6 @@ spec:
         - name: healthz
           containerPort: 8081
           protocol: TCP
----
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
