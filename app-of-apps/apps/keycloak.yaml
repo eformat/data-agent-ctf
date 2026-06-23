@@ -16,7 +16,7 @@ spec:
     path: applications/keycloak/base
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   syncPolicy:
     automated:
       prune: true
@@ -47,7 +47,7 @@ spec:
     path: applications/keycloak
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   syncPolicy:
     automated:
       prune: true

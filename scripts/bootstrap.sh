@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-NAMESPACE="${NAMESPACE:-data-agent-ctf}"
+NAMESPACE="${NAMESPACE:-openshell}"
 TENANT_ARGOCD=false
 TOLERATE_GPU=false
 GIT_REPO="${GIT_REPO:-https://github.com/eformat/data-agent-ctf.git}"

@@ -16,7 +16,7 @@ spec:
     path: applications/spicedb
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-agent-ctf
+    namespace: openshell
   ignoreDifferences:
     - group: authzed.com
       kind: SpiceDBCluster
