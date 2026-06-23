@@ -1,17 +1,9 @@
 ---
-fullnameOverride: openshell
 image:
   repository: quay.io/eformat/openshell-gateway
   tag: 0.0.62-h2ws
 certManager:
   enabled: true
-  serverDnsNames:
-    - openshell
-    - openshell.data-agent-ctf.svc
-    - openshell.data-agent-ctf.svc.cluster.local
-    - localhost
-    - openshell.localhost
-    - "*.openshell.localhost"
 server:
   auth:
     allowUnauthenticatedUsers: true
