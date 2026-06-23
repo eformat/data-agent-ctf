@@ -19,10 +19,17 @@ spec:
         - name: setup
           image: quay.io/eformat/toolbox:latest
           command: ["/bin/bash", "/scripts/setup-realm.sh"]
-          envFrom:
-            - secretRef:
-                name: keycloak-admin-secret
           env:
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-admin
+                  key: username
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-admin
+                  key: password
             - name: KEYCLOAK_URL
               value: "https://keycloak-service:8443"
             - name: REALM_NAME
