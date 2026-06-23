@@ -17,7 +17,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create"]
+    verbs: ["get", "create", "delete"]
   - apiGroups: ["route.openshift.io"]
     resources: ["routes"]
     verbs: ["get", "patch", "update"]
@@ -75,6 +75,22 @@ spec:
       restartPolicy: OnFailure
       serviceAccountName: openshell-certgen
       initContainers:
+        - name: delete-old-certs
+          image: quay.io/eformat/openshell-deployer:latest
+          env:
+            - name: HOME
+              value: /tmp
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              for s in openshell-server-tls openshell-client-tls openshell-jwt-keys; do
+                oc delete secret "$s" -n "$POD_NAMESPACE" 2>/dev/null && echo "Deleted $s" || echo "$s not found"
+              done
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
         - name: generate-certs
           image: quay.io/eformat/openshell-gateway:0.0.62-h2ws
           env:
