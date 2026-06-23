@@ -23,7 +23,9 @@ kind: NetworkPolicy
 metadata:
   name: agent-egress-lockdown
 spec:
-  podSelector: {}
+  podSelector:
+    matchLabels:
+      openshell.ai/managed-by: openshell
   policyTypes:
     - Egress
   egress:
