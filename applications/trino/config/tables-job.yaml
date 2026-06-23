@@ -82,13 +82,17 @@ data:
     done
 
     echo "=== Creating MinIO warehouse bucket ==="
-    if curl -sf -o /dev/null "${MINIO_ENDPOINT}/warehouse/" \
-         -u "${S3_ACCESS_KEY}:${S3_SECRET_KEY}"; then
-      echo "  warehouse bucket exists"
-    else
-      curl -sf -X PUT "${MINIO_ENDPOINT}/warehouse/" \
-        -u "${S3_ACCESS_KEY}:${S3_SECRET_KEY}" && echo "  created warehouse bucket"
-    fi
+    pip install -q --target /tmp/pylibs minio 2>/dev/null || true
+    PYTHONPATH=/tmp/pylibs python3 -c "
+    from minio import Minio
+    c = Minio('${MINIO_ENDPOINT}'.replace('http://','').replace('https://',''),
+              access_key='${S3_ACCESS_KEY}', secret_key='${S3_SECRET_KEY}', secure=False)
+    if not c.bucket_exists('warehouse'):
+        c.make_bucket('warehouse')
+        print('  created warehouse bucket')
+    else:
+        print('  warehouse bucket exists')
+    "
 
     echo "=== Creating schemas ==="
     trino_exec() {
