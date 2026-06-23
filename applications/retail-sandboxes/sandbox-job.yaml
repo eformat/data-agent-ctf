@@ -99,7 +99,7 @@ metadata:
 data:
   deploy-sandboxes.sh: |
     #!/bin/bash
-    set -euo pipefail
+    set -uo pipefail
 
     GATEWAY_NAME="${OPENSHELL_GATEWAY:-ctf}"
     GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell:8080}"
