@@ -1,0 +1,327 @@
+---
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: Sandbox
+metadata:
+  name: retail-finance
+  namespace: openshell
+spec:
+  replicas: 1
+  shutdownPolicy: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+  podTemplate:
+    spec:
+      serviceAccountName: openshell-sandbox
+      automountServiceAccountToken: false
+      initContainers:
+        - name: openshell-supervisor-install
+          image: "ghcr.io/nvidia/openshell/supervisor:0.0.62"
+          command: ["/openshell-sandbox", "copy-self", "/opt/openshell/bin/openshell-sandbox"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+        - name: workspace-init
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["sh", "-c", "if [ ! -f /workspace-pvc/.workspace-initialized ]; then if [ -d /sandbox ]; then tar -C /sandbox -cf - . | tar -C /workspace-pvc -xpf -; fi && touch /workspace-pvc/.workspace-initialized; fi"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace-pvc
+      containers:
+        - name: agent
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["/opt/openshell/bin/openshell-sandbox"]
+          env:
+            - name: OPENSHELL_SANDBOX
+              value: retail-finance
+            - name: OPENSHELL_ENDPOINT
+              value: "https://openshell.openshell.svc.cluster.local:8080"
+            - name: OPENSHELL_SANDBOX_COMMAND
+              value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_TELEMETRY_ENABLED
+              value: "true"
+            - name: OPENSHELL_SSH_SOCKET_PATH
+              value: "/run/openshell/ssh.sock"
+            - name: OPENSHELL_TLS_CA
+              value: "/etc/openshell-tls/client/ca.crt"
+            - name: OPENSHELL_TLS_CERT
+              value: "/etc/openshell-tls/client/tls.crt"
+            - name: OPENSHELL_TLS_KEY
+              value: "/etc/openshell-tls/client/tls.key"
+            - name: OPENSHELL_K8S_SA_TOKEN_FILE
+              value: "/var/run/secrets/openshell/token"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-secrets
+                  key: OPENAI_API_KEY
+            - name: GATEWAY_ALLOW_ALL_USERS
+              value: "true"
+            - name: HERMES_ACTIVE_PROFILE
+              value: "retail-finance"
+            - name: HERMES_PUBLIC_URL
+              value: "https://retail-finance.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+            - name: HERMES_DASHBOARD_OIDC_ISSUER
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+            - name: HERMES_DASHBOARD_OIDC_CLIENT_ID
+              value: "hermes-dashboard"
+          securityContext:
+            appArmorProfile:
+              type: Unconfined
+            capabilities:
+              add: ["SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "SYSLOG"]
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-client-tls
+              mountPath: /etc/openshell-tls/client
+              readOnly: true
+            - name: openshell-sa-token
+              mountPath: /var/run/secrets/openshell
+              readOnly: true
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+              readOnly: true
+            - name: workspace
+              mountPath: /sandbox
+      volumes:
+        - name: openshell-client-tls
+          secret:
+            secretName: openshell-client-tls
+            defaultMode: 0400
+        - name: openshell-sa-token
+          projected:
+            defaultMode: 0400
+            sources:
+              - serviceAccountToken:
+                  audience: openshell-gateway
+                  expirationSeconds: 3600
+                  path: token
+        - name: openshell-supervisor-bin
+          emptyDir: {}
+---
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: Sandbox
+metadata:
+  name: retail-sales
+  namespace: openshell
+spec:
+  replicas: 1
+  shutdownPolicy: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+  podTemplate:
+    spec:
+      serviceAccountName: openshell-sandbox
+      automountServiceAccountToken: false
+      initContainers:
+        - name: openshell-supervisor-install
+          image: "ghcr.io/nvidia/openshell/supervisor:0.0.62"
+          command: ["/openshell-sandbox", "copy-self", "/opt/openshell/bin/openshell-sandbox"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+        - name: workspace-init
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["sh", "-c", "if [ ! -f /workspace-pvc/.workspace-initialized ]; then if [ -d /sandbox ]; then tar -C /sandbox -cf - . | tar -C /workspace-pvc -xpf -; fi && touch /workspace-pvc/.workspace-initialized; fi"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace-pvc
+      containers:
+        - name: agent
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["/opt/openshell/bin/openshell-sandbox"]
+          env:
+            - name: OPENSHELL_SANDBOX
+              value: retail-sales
+            - name: OPENSHELL_ENDPOINT
+              value: "https://openshell.openshell.svc.cluster.local:8080"
+            - name: OPENSHELL_SANDBOX_COMMAND
+              value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_TELEMETRY_ENABLED
+              value: "true"
+            - name: OPENSHELL_SSH_SOCKET_PATH
+              value: "/run/openshell/ssh.sock"
+            - name: OPENSHELL_TLS_CA
+              value: "/etc/openshell-tls/client/ca.crt"
+            - name: OPENSHELL_TLS_CERT
+              value: "/etc/openshell-tls/client/tls.crt"
+            - name: OPENSHELL_TLS_KEY
+              value: "/etc/openshell-tls/client/tls.key"
+            - name: OPENSHELL_K8S_SA_TOKEN_FILE
+              value: "/var/run/secrets/openshell/token"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-secrets
+                  key: OPENAI_API_KEY
+            - name: GATEWAY_ALLOW_ALL_USERS
+              value: "true"
+            - name: HERMES_ACTIVE_PROFILE
+              value: "retail-sales"
+            - name: HERMES_PUBLIC_URL
+              value: "https://retail-sales.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+            - name: HERMES_DASHBOARD_OIDC_ISSUER
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+            - name: HERMES_DASHBOARD_OIDC_CLIENT_ID
+              value: "hermes-dashboard"
+          securityContext:
+            appArmorProfile:
+              type: Unconfined
+            capabilities:
+              add: ["SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "SYSLOG"]
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-client-tls
+              mountPath: /etc/openshell-tls/client
+              readOnly: true
+            - name: openshell-sa-token
+              mountPath: /var/run/secrets/openshell
+              readOnly: true
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+              readOnly: true
+            - name: workspace
+              mountPath: /sandbox
+      volumes:
+        - name: openshell-client-tls
+          secret:
+            secretName: openshell-client-tls
+            defaultMode: 0400
+        - name: openshell-sa-token
+          projected:
+            defaultMode: 0400
+            sources:
+              - serviceAccountToken:
+                  audience: openshell-gateway
+                  expirationSeconds: 3600
+                  path: token
+        - name: openshell-supervisor-bin
+          emptyDir: {}
+---
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: Sandbox
+metadata:
+  name: retail-ops
+  namespace: openshell
+spec:
+  replicas: 1
+  shutdownPolicy: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+  podTemplate:
+    spec:
+      serviceAccountName: openshell-sandbox
+      automountServiceAccountToken: false
+      initContainers:
+        - name: openshell-supervisor-install
+          image: "ghcr.io/nvidia/openshell/supervisor:0.0.62"
+          command: ["/openshell-sandbox", "copy-self", "/opt/openshell/bin/openshell-sandbox"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+        - name: workspace-init
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["sh", "-c", "if [ ! -f /workspace-pvc/.workspace-initialized ]; then if [ -d /sandbox ]; then tar -C /sandbox -cf - . | tar -C /workspace-pvc -xpf -; fi && touch /workspace-pvc/.workspace-initialized; fi"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace-pvc
+      containers:
+        - name: agent
+          image: "quay.io/eformat/hermes-openshell:latest"
+          command: ["/opt/openshell/bin/openshell-sandbox"]
+          env:
+            - name: OPENSHELL_SANDBOX
+              value: retail-ops
+            - name: OPENSHELL_ENDPOINT
+              value: "https://openshell.openshell.svc.cluster.local:8080"
+            - name: OPENSHELL_SANDBOX_COMMAND
+              value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_TELEMETRY_ENABLED
+              value: "true"
+            - name: OPENSHELL_SSH_SOCKET_PATH
+              value: "/run/openshell/ssh.sock"
+            - name: OPENSHELL_TLS_CA
+              value: "/etc/openshell-tls/client/ca.crt"
+            - name: OPENSHELL_TLS_CERT
+              value: "/etc/openshell-tls/client/tls.crt"
+            - name: OPENSHELL_TLS_KEY
+              value: "/etc/openshell-tls/client/tls.key"
+            - name: OPENSHELL_K8S_SA_TOKEN_FILE
+              value: "/var/run/secrets/openshell/token"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sandbox-secrets
+                  key: OPENAI_API_KEY
+            - name: GATEWAY_ALLOW_ALL_USERS
+              value: "true"
+            - name: HERMES_ACTIVE_PROFILE
+              value: "retail-ops"
+            - name: HERMES_PUBLIC_URL
+              value: "https://retail-ops.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+            - name: HERMES_DASHBOARD_OIDC_ISSUER
+              value: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+            - name: HERMES_DASHBOARD_OIDC_CLIENT_ID
+              value: "hermes-dashboard"
+          securityContext:
+            appArmorProfile:
+              type: Unconfined
+            capabilities:
+              add: ["SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "SYSLOG"]
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-client-tls
+              mountPath: /etc/openshell-tls/client
+              readOnly: true
+            - name: openshell-sa-token
+              mountPath: /var/run/secrets/openshell
+              readOnly: true
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+              readOnly: true
+            - name: workspace
+              mountPath: /sandbox
+      volumes:
+        - name: openshell-client-tls
+          secret:
+            secretName: openshell-client-tls
+            defaultMode: 0400
+        - name: openshell-sa-token
+          projected:
+            defaultMode: 0400
+            sources:
+              - serviceAccountToken:
+                  audience: openshell-gateway
+                  expirationSeconds: 3600
+                  path: token
+        - name: openshell-supervisor-bin
+          emptyDir: {}

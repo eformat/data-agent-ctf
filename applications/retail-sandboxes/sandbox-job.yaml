@@ -103,13 +103,7 @@ data:
 
     GATEWAY_NAME="${OPENSHELL_GATEWAY:-ctf}"
     GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell:8080}"
-    APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
-    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "data-agent-ctf")
-
-    if [ -z "${KEYCLOAK_ISSUER:-}" ]; then
-      KC_HOST=$(oc get route keycloak -n "${NAMESPACE}" -o jsonpath='{.spec.host}' 2>/dev/null)
-      KEYCLOAK_ISSUER="https://${KC_HOST}/realms/retail-ctf"
-    fi
+    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "openshell")
 
     echo "=== Setting up mTLS certs ==="
     MTLS_DIR="$HOME/.config/openshell/gateways/${GATEWAY_NAME}/mtls"
@@ -124,51 +118,22 @@ data:
     echo "=== Checking gateway ==="
     openshell status -g "$GATEWAY_NAME"
 
+    echo "=== Waiting for sandboxes ==="
     for dept in finance sales ops; do
       name="retail-${dept}"
-      echo "=== Deploying ${name} ==="
-
-      # Generate per-department OPA policy
-      sed "/retail-.*-mcp/{/retail-${dept}-mcp/!{N;d;}}" \
-          /policy/policy-retail.yaml > "/tmp/policy-${dept}.yaml"
-
-      UPLOAD_DIR=$(mktemp -d)
-      mkdir -p "$UPLOAD_DIR/profiles/retail-"{finance,sales,ops}
-      echo "GATEWAY_ALLOW_ALL_USERS=true" > "$UPLOAD_DIR/.env"
-      for d in finance sales ops; do
-        cp "$UPLOAD_DIR/.env" "$UPLOAD_DIR/profiles/retail-${d}/.env"
-      done
-      echo "retail-${dept}" > "$UPLOAD_DIR/active_profile"
-
-      openshell sandbox delete "$name" -g "$GATEWAY_NAME" 2>/dev/null || true
-      sleep 3
-
-      openshell sandbox create -g "$GATEWAY_NAME" \
-        --name "$name" \
-        --from "$HERMES_IMAGE" \
-        --upload "$UPLOAD_DIR:/sandbox/.hermes" \
-        --policy "/tmp/policy-${dept}.yaml" \
-        --no-tty \
-        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
-               GATEWAY_ALLOW_ALL_USERS=true \
-               HERMES_ACTIVE_PROFILE="retail-${dept}" \
-               HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
-               HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
-               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
-               /usr/local/bin/hermes-start.sh
-
-      # Wait for Ready
+      echo "Waiting for ${name}..."
       for i in $(seq 1 40); do
         status=$(openshell sandbox list -g "$GATEWAY_NAME" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}' || true)
-        if [ "$status" = "Ready" ]; then break; fi
+        if [ "$status" = "Ready" ]; then echo "  ${name}: Ready"; break; fi
+        echo "  ${name}: ${status:-not found} (${i}/40)"
         sleep 10
       done
-
-      # Expose
-      openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
-
-      rm -rf "$UPLOAD_DIR" "/tmp/policy-${dept}.yaml"
-      echo "  ${name}: https://${name}.${APPS_DOMAIN}"
     done
 
-    echo "=== All sandboxes deployed ==="
+    echo "=== Exposing services ==="
+    for dept in finance sales ops; do
+      name="retail-${dept}"
+      openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
+    done
+
+    echo "=== Done ==="
