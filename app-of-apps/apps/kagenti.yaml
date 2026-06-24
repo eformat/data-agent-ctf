@@ -129,7 +129,7 @@ spec:
               enabled: false
           kagenti-operator-chart:
             controllerManager:
-              manager:
+              container:
                 image:
                   tag: 0.3.0-alpha.5
               keycloak:
