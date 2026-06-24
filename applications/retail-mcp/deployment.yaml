@@ -69,6 +69,34 @@ spec:
         kagenti.io/type: "tool"
         istio.io/dataplane-mode: "none"
     spec:
+      initContainers:
+        - name: proxy-init
+          image: ghcr.io/kagenti/kagenti-extensions/proxy-init:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PROXY_PORT
+              value: "15123"
+            - name: INBOUND_PROXY_PORT
+              value: "15124"
+            - name: PROXY_UID
+              value: "1337"
+            - name: OUTBOUND_PORTS_EXCLUDE
+              value: "50051,8080,443"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 10m
+              memory: 10Mi
       containers:
         - name: mcp
           image: quay.io/eformat/retail-mcp-server:latest
@@ -106,10 +134,166 @@ spec:
             runAsNonRoot: true
             capabilities:
               drop: ["ALL"]
+            seLinuxOptions:
+              type: spc_t
+        - name: spiffe-helper
+          image: ghcr.io/spiffe/spiffe-helper:nightly
+          imagePullPolicy: IfNotPresent
+          command: ["/spiffe-helper", "-config=/etc/spiffe-helper/helper.conf", "run"]
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: authbridge-spiffe-helper-config
+              mountPath: /etc/spiffe-helper
+            - name: spire-agent-socket
+              mountPath: /run/spire/agent-sockets
+              readOnly: true
+            - name: svid-output
+              mountPath: /opt
+        - name: client-registration
+          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              echo 'Waiting for SPIFFE...';
+              while [ ! -f /opt/jwt_svid.token ]; do sleep 2; done;
+              echo 'Ready!';
+              JWT_PAYLOAD=$(cat /opt/jwt_svid.token | cut -d. -f2);
+              CLIENT_ID=$(echo ${JWT_PAYLOAD}== | base64 -d 2>/dev/null | python -c "import sys,json; print(json.load(sys.stdin).get('sub',''))");
+              echo $CLIENT_ID > /shared/client-id.txt;
+              echo "Client ID: $CLIENT_ID";
+              python client_registration.py;
+              tail -f /dev/null
+          env:
+            - name: SPIRE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: SPIRE_ENABLED
+            - name: KEYCLOAK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+            - name: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+            - name: CLIENT_NAME
+              value: retail-finance-mcp
+            - name: SECRET_FILE_PATH
+              value: /shared/client-secret.txt
+            - name: KEYCLOAK_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_USERNAME
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+            - name: svid-output
+              mountPath: /opt
+        - name: envoy-proxy
+          image: ghcr.io/kagenti/kagenti-extensions/authbridge-envoy:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/authbridge/config.yaml"]
+          ports:
+            - containerPort: 15123
+            - containerPort: 15124
+          env:
+            - name: TOKEN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TOKEN_URL
+            - name: ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: ISSUER
+            - name: TARGET_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_AUDIENCE
+            - name: TARGET_SCOPES
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_SCOPES
+            - name: CLIENT_ID_FILE
+              value: /shared/client-id.txt
+            - name: CLIENT_SECRET_FILE
+              value: /shared/client-secret.txt
+            - name: ROUTES_CONFIG_PATH
+              value: /etc/authproxy/routes.yaml
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+              readOnly: true
+            - name: authproxy-routes
+              mountPath: /etc/authproxy
+              readOnly: true
+            - name: envoy-config-real
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: ab-runtime
+              mountPath: /etc/authbridge
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: retail-finance-config
+        - name: shared-data
+          emptyDir: {}
+        - name: svid-output
+          emptyDir: {}
+        - name: spire-agent-socket
+          csi:
+            driver: csi.spiffe.io
+            readOnly: true
+        - name: authbridge-spiffe-helper-config
+          configMap:
+            name: authbridge-spiffe-helper-config
+        - name: authproxy-routes
+          configMap:
+            name: authproxy-routes
+        - name: envoy-config-real
+          configMap:
+            name: authbridge-envoy-config-shared
+        - name: ab-runtime
+          configMap:
+            name: authbridge-runtime-config
 ---
 apiVersion: v1
 kind: Service
@@ -193,6 +377,34 @@ spec:
         kagenti.io/type: "tool"
         istio.io/dataplane-mode: "none"
     spec:
+      initContainers:
+        - name: proxy-init
+          image: ghcr.io/kagenti/kagenti-extensions/proxy-init:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PROXY_PORT
+              value: "15123"
+            - name: INBOUND_PROXY_PORT
+              value: "15124"
+            - name: PROXY_UID
+              value: "1337"
+            - name: OUTBOUND_PORTS_EXCLUDE
+              value: "50051,8080,443"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 10m
+              memory: 10Mi
       containers:
         - name: mcp
           image: quay.io/eformat/retail-mcp-server:latest
@@ -230,10 +442,166 @@ spec:
             runAsNonRoot: true
             capabilities:
               drop: ["ALL"]
+            seLinuxOptions:
+              type: spc_t
+        - name: spiffe-helper
+          image: ghcr.io/spiffe/spiffe-helper:nightly
+          imagePullPolicy: IfNotPresent
+          command: ["/spiffe-helper", "-config=/etc/spiffe-helper/helper.conf", "run"]
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: authbridge-spiffe-helper-config
+              mountPath: /etc/spiffe-helper
+            - name: spire-agent-socket
+              mountPath: /run/spire/agent-sockets
+              readOnly: true
+            - name: svid-output
+              mountPath: /opt
+        - name: client-registration
+          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              echo 'Waiting for SPIFFE...';
+              while [ ! -f /opt/jwt_svid.token ]; do sleep 2; done;
+              echo 'Ready!';
+              JWT_PAYLOAD=$(cat /opt/jwt_svid.token | cut -d. -f2);
+              CLIENT_ID=$(echo ${JWT_PAYLOAD}== | base64 -d 2>/dev/null | python -c "import sys,json; print(json.load(sys.stdin).get('sub',''))");
+              echo $CLIENT_ID > /shared/client-id.txt;
+              echo "Client ID: $CLIENT_ID";
+              python client_registration.py;
+              tail -f /dev/null
+          env:
+            - name: SPIRE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: SPIRE_ENABLED
+            - name: KEYCLOAK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+            - name: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+            - name: CLIENT_NAME
+              value: retail-sales-mcp
+            - name: SECRET_FILE_PATH
+              value: /shared/client-secret.txt
+            - name: KEYCLOAK_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_USERNAME
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+            - name: svid-output
+              mountPath: /opt
+        - name: envoy-proxy
+          image: ghcr.io/kagenti/kagenti-extensions/authbridge-envoy:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/authbridge/config.yaml"]
+          ports:
+            - containerPort: 15123
+            - containerPort: 15124
+          env:
+            - name: TOKEN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TOKEN_URL
+            - name: ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: ISSUER
+            - name: TARGET_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_AUDIENCE
+            - name: TARGET_SCOPES
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_SCOPES
+            - name: CLIENT_ID_FILE
+              value: /shared/client-id.txt
+            - name: CLIENT_SECRET_FILE
+              value: /shared/client-secret.txt
+            - name: ROUTES_CONFIG_PATH
+              value: /etc/authproxy/routes.yaml
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+              readOnly: true
+            - name: authproxy-routes
+              mountPath: /etc/authproxy
+              readOnly: true
+            - name: envoy-config-real
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: ab-runtime
+              mountPath: /etc/authbridge
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: retail-sales-config
+        - name: shared-data
+          emptyDir: {}
+        - name: svid-output
+          emptyDir: {}
+        - name: spire-agent-socket
+          csi:
+            driver: csi.spiffe.io
+            readOnly: true
+        - name: authbridge-spiffe-helper-config
+          configMap:
+            name: authbridge-spiffe-helper-config
+        - name: authproxy-routes
+          configMap:
+            name: authproxy-routes
+        - name: envoy-config-real
+          configMap:
+            name: authbridge-envoy-config-shared
+        - name: ab-runtime
+          configMap:
+            name: authbridge-runtime-config
 ---
 apiVersion: v1
 kind: Service
@@ -317,6 +685,34 @@ spec:
         kagenti.io/type: "tool"
         istio.io/dataplane-mode: "none"
     spec:
+      initContainers:
+        - name: proxy-init
+          image: ghcr.io/kagenti/kagenti-extensions/proxy-init:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PROXY_PORT
+              value: "15123"
+            - name: INBOUND_PROXY_PORT
+              value: "15124"
+            - name: PROXY_UID
+              value: "1337"
+            - name: OUTBOUND_PORTS_EXCLUDE
+              value: "50051,8080,443"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 10m
+              memory: 10Mi
       containers:
         - name: mcp
           image: quay.io/eformat/retail-mcp-server:latest
@@ -354,10 +750,166 @@ spec:
             runAsNonRoot: true
             capabilities:
               drop: ["ALL"]
+            seLinuxOptions:
+              type: spc_t
+        - name: spiffe-helper
+          image: ghcr.io/spiffe/spiffe-helper:nightly
+          imagePullPolicy: IfNotPresent
+          command: ["/spiffe-helper", "-config=/etc/spiffe-helper/helper.conf", "run"]
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: authbridge-spiffe-helper-config
+              mountPath: /etc/spiffe-helper
+            - name: spire-agent-socket
+              mountPath: /run/spire/agent-sockets
+              readOnly: true
+            - name: svid-output
+              mountPath: /opt
+        - name: client-registration
+          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              echo 'Waiting for SPIFFE...';
+              while [ ! -f /opt/jwt_svid.token ]; do sleep 2; done;
+              echo 'Ready!';
+              JWT_PAYLOAD=$(cat /opt/jwt_svid.token | cut -d. -f2);
+              CLIENT_ID=$(echo ${JWT_PAYLOAD}== | base64 -d 2>/dev/null | python -c "import sys,json; print(json.load(sys.stdin).get('sub',''))");
+              echo $CLIENT_ID > /shared/client-id.txt;
+              echo "Client ID: $CLIENT_ID";
+              python client_registration.py;
+              tail -f /dev/null
+          env:
+            - name: SPIRE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: SPIRE_ENABLED
+            - name: KEYCLOAK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_TOKEN_EXCHANGE_ENABLED
+            - name: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: authbridge-environments
+                  key: KEYCLOAK_CLIENT_REGISTRATION_ENABLED
+            - name: CLIENT_NAME
+              value: retail-ops-mcp
+            - name: SECRET_FILE_PATH
+              value: /shared/client-secret.txt
+            - name: KEYCLOAK_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_USERNAME
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-keycloak-admin
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          securityContext:
+            seLinuxOptions:
+              type: spc_t
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+            - name: svid-output
+              mountPath: /opt
+        - name: envoy-proxy
+          image: ghcr.io/kagenti/kagenti-extensions/authbridge-envoy:v0.6.0-alpha.9
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/authbridge/config.yaml"]
+          ports:
+            - containerPort: 15123
+            - containerPort: 15124
+          env:
+            - name: TOKEN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TOKEN_URL
+            - name: ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: ISSUER
+            - name: TARGET_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_AUDIENCE
+            - name: TARGET_SCOPES
+              valueFrom:
+                secretKeyRef:
+                  name: authbridge-proxy-config
+                  key: TARGET_SCOPES
+            - name: CLIENT_ID_FILE
+              value: /shared/client-id.txt
+            - name: CLIENT_SECRET_FILE
+              value: /shared/client-secret.txt
+            - name: ROUTES_CONFIG_PATH
+              value: /etc/authproxy/routes.yaml
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            seLinuxOptions:
+              type: spc_t
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+              readOnly: true
+            - name: authproxy-routes
+              mountPath: /etc/authproxy
+              readOnly: true
+            - name: envoy-config-real
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: ab-runtime
+              mountPath: /etc/authbridge
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: retail-ops-config
+        - name: shared-data
+          emptyDir: {}
+        - name: svid-output
+          emptyDir: {}
+        - name: spire-agent-socket
+          csi:
+            driver: csi.spiffe.io
+            readOnly: true
+        - name: authbridge-spiffe-helper-config
+          configMap:
+            name: authbridge-spiffe-helper-config
+        - name: authproxy-routes
+          configMap:
+            name: authproxy-routes
+        - name: envoy-config-real
+          configMap:
+            name: authbridge-envoy-config-shared
+        - name: ab-runtime
+          configMap:
+            name: authbridge-runtime-config
 ---
 apiVersion: v1
 kind: Service
