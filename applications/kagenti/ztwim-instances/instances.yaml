@@ -37,4 +37,10 @@ apiVersion: operator.openshift.io/v1alpha1
 kind: SpireAgent
 metadata:
   name: cluster
-spec: {}
+spec:
+  nodeAttestor:
+    k8sPSATEnabled: "true"
+  workloadAttestors:
+    k8sEnabled: "true"
+    workloadAttestorsVerification:
+      type: auto
