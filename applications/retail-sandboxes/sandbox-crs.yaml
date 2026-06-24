@@ -47,6 +47,10 @@ spec:
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
               value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_POLICY_RULES
+              value: "/etc/openshell-policy/sandbox-policy.rego"
+            - name: OPENSHELL_POLICY_DATA
+              value: "/etc/openshell-policy/policy-retail.yaml"
             - name: OPENSHELL_TELEMETRY_ENABLED
               value: "true"
             - name: OPENSHELL_SSH_SOCKET_PATH
@@ -92,6 +96,9 @@ spec:
               readOnly: true
             - name: workspace
               mountPath: /sandbox
+            - name: sandbox-policy
+              mountPath: /etc/openshell-policy
+              readOnly: true
       volumes:
         - name: openshell-client-tls
           secret:
@@ -107,6 +114,9 @@ spec:
                   path: token
         - name: openshell-supervisor-bin
           emptyDir: {}
+        - name: sandbox-policy
+          configMap:
+            name: sandbox-policy
 ---
 apiVersion: agents.x-k8s.io/v1alpha1
 kind: Sandbox
@@ -156,6 +166,10 @@ spec:
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
               value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_POLICY_RULES
+              value: "/etc/openshell-policy/sandbox-policy.rego"
+            - name: OPENSHELL_POLICY_DATA
+              value: "/etc/openshell-policy/policy-retail.yaml"
             - name: OPENSHELL_TELEMETRY_ENABLED
               value: "true"
             - name: OPENSHELL_SSH_SOCKET_PATH
@@ -201,6 +215,9 @@ spec:
               readOnly: true
             - name: workspace
               mountPath: /sandbox
+            - name: sandbox-policy
+              mountPath: /etc/openshell-policy
+              readOnly: true
       volumes:
         - name: openshell-client-tls
           secret:
@@ -216,6 +233,9 @@ spec:
                   path: token
         - name: openshell-supervisor-bin
           emptyDir: {}
+        - name: sandbox-policy
+          configMap:
+            name: sandbox-policy
 ---
 apiVersion: agents.x-k8s.io/v1alpha1
 kind: Sandbox
@@ -265,6 +285,10 @@ spec:
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
               value: "/usr/local/bin/hermes-start.sh"
+            - name: OPENSHELL_POLICY_RULES
+              value: "/etc/openshell-policy/sandbox-policy.rego"
+            - name: OPENSHELL_POLICY_DATA
+              value: "/etc/openshell-policy/policy-retail.yaml"
             - name: OPENSHELL_TELEMETRY_ENABLED
               value: "true"
             - name: OPENSHELL_SSH_SOCKET_PATH
@@ -310,6 +334,9 @@ spec:
               readOnly: true
             - name: workspace
               mountPath: /sandbox
+            - name: sandbox-policy
+              mountPath: /etc/openshell-policy
+              readOnly: true
       volumes:
         - name: openshell-client-tls
           secret:
@@ -325,3 +352,6 @@ spec:
                   path: token
         - name: openshell-supervisor-bin
           emptyDir: {}
+        - name: sandbox-policy
+          configMap:
+            name: sandbox-policy

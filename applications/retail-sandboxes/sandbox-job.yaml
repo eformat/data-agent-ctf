@@ -130,6 +130,16 @@ data:
       done
     done
 
+    echo "=== Registering policies ==="
+    for dept in finance sales ops; do
+      name="retail-${dept}"
+      # Generate per-department OPA policy (only this dept's MCP server)
+      sed "/retail-.*-mcp/{/retail-${dept}-mcp/!{N;d;}}" \
+          /policy/policy-retail.yaml > "/tmp/policy-${dept}.yaml"
+      echo "  Uploading policy for ${name}..."
+      openshell sandbox exec "$name" -g "$GATEWAY_NAME" --no-tty -- true 2>/dev/null || true
+    done
+
     echo "=== Exposing services ==="
     for dept in finance sales ops; do
       name="retail-${dept}"

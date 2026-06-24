@@ -8,5 +8,6 @@ configMapGenerator:
   - name: sandbox-policy
     files:
       - policy-retail.yaml
+      - sandbox-policy.rego
 generatorOptions:
   disableNameSuffixHash: true
