@@ -28,6 +28,10 @@ server:
     allowUnauthenticatedUsers: true
   tls:
     clientCaSecretName: ""
+  oidc:
+    issuer: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+    audience: "openshell-cli"
+    rolesClaim: "realm_access.roles"
 service:
   type: ClusterIP
 tolerations:
