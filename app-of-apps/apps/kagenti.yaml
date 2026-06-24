@@ -106,7 +106,7 @@ spec:
   project: default
   sources:
     - repoURL: https://github.com/kagenti/kagenti.git
-      targetRevision: main
+      targetRevision: v0.7.0-alpha.3
       path: charts/kagenti
       helm:
         releaseName: kagenti
@@ -127,6 +127,13 @@ spec:
               enabled: false
             mlflow:
               enabled: false
+          kagenti-operator-chart:
+            controllerManager:
+              keycloak:
+                adminSecretNamespace: openshell
+                realm: retail-ctf
+              signatureVerification:
+                spireTrustDomain: retail-demo
   destination:
     server: https://kubernetes.default.svc
     namespace: kagenti-system
