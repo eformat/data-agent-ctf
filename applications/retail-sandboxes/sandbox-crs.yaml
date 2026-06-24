@@ -4,6 +4,8 @@ kind: Sandbox
 metadata:
   name: retail-finance
   namespace: openshell
+  labels:
+    openshell.ai/sandbox-id: retail-finance
 spec:
   replicas: 1
   shutdownPolicy: Retain
@@ -123,6 +125,8 @@ kind: Sandbox
 metadata:
   name: retail-sales
   namespace: openshell
+  labels:
+    openshell.ai/sandbox-id: retail-sales
 spec:
   replicas: 1
   shutdownPolicy: Retain
@@ -242,6 +246,8 @@ kind: Sandbox
 metadata:
   name: retail-ops
   namespace: openshell
+  labels:
+    openshell.ai/sandbox-id: retail-ops
 spec:
   replicas: 1
   shutdownPolicy: Retain
