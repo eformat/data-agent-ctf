@@ -161,6 +161,8 @@ spec:
                 authbridgeLite: ghcr.io/kagenti/kagenti-extensions/authbridge-lite:v0.6.0-alpha.9
                 proxyInit: ghcr.io/kagenti/kagenti-extensions/proxy-init:v0.6.0-alpha.9
                 pullPolicy: IfNotPresent
+              proxy:
+                iptablesCmd: iptables-legacy
   destination:
     server: https://kubernetes.default.svc
     namespace: kagenti-system
