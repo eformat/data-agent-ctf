@@ -44,6 +44,7 @@ metadata:
   namespace: openshell
 data:
   config.yaml: |
+    egressEnforcement: none
     listen_port: 9095
     pipeline:
       inbound:

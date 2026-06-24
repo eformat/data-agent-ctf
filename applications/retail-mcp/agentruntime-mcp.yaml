@@ -9,7 +9,6 @@ metadata:
   namespace: openshell
 spec:
   type: tool
-  egressEnforcement: none
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
@@ -22,7 +21,6 @@ metadata:
   namespace: openshell
 spec:
   type: tool
-  egressEnforcement: none
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
@@ -35,7 +33,6 @@ metadata:
   namespace: openshell
 spec:
   type: tool
-  egressEnforcement: none
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
