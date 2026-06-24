@@ -136,9 +136,17 @@ spec:
               container:
                 image:
                   tag: 0.3.0-alpha.5
-            keycloak:
-              adminSecretNamespace: openshell
-              realm: retail-ctf
+                args:
+                  - "--leader-elect"
+                  - "--metrics-bind-address=:8443"
+                  - "--health-probe-bind-address=:8081"
+                  - "--webhook-cert-path=/tmp/k8s-webhook-server/serving-certs"
+                  - "--config-path=/etc/kagenti/config.yaml"
+                  - "--feature-gates-path=/etc/kagenti/feature-gates/feature-gates.yaml"
+                  - "--enable-client-registration=true"
+                  - "--keycloak-admin-secret-namespace=openshell"
+                  - "--keycloak-realm=retail-ctf"
+                  - "--client-auth-type=client-secret"
             signatureVerification:
               spireTrustDomain: ""
             featureGates:
