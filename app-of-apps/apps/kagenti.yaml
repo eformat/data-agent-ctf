@@ -132,11 +132,23 @@ spec:
               container:
                 image:
                   tag: 0.3.0-alpha.5
-              keycloak:
-                adminSecretNamespace: openshell
-                realm: retail-ctf
-              signatureVerification:
-                spireTrustDomain: retail-demo
+            keycloak:
+              adminSecretNamespace: openshell
+              realm: retail-ctf
+            signatureVerification:
+              spireTrustDomain: ""
+            featureGates:
+              globalEnabled: true
+              envoyProxy: true
+              injectTools: true
+              perWorkloadConfigResolution: false
+            defaults:
+              images:
+                envoyProxy: ghcr.io/kagenti/kagenti-extensions/authbridge-envoy:v0.6.0-alpha.9
+                authbridge: ghcr.io/kagenti/kagenti-extensions/authbridge:v0.6.0-alpha.9
+                authbridgeLite: ghcr.io/kagenti/kagenti-extensions/authbridge-lite:v0.6.0-alpha.9
+                proxyInit: ghcr.io/kagenti/kagenti-extensions/proxy-init:v0.6.0-alpha.9
+                pullPolicy: IfNotPresent
   destination:
     server: https://kubernetes.default.svc
     namespace: kagenti-system
