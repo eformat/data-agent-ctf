@@ -45,6 +45,11 @@ spec:
     repoURL: https://github.com/eformat/data-agent-ctf.git
     targetRevision: main
     path: applications/keycloak
+  ignoreDifferences:
+    - group: route.openshift.io
+      kind: Route
+      jsonPointers:
+        - /spec/tls/destinationCACertificate
   destination:
     server: https://kubernetes.default.svc
     namespace: openshell
