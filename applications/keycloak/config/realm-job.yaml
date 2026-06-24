@@ -102,11 +102,15 @@ data:
     }' 2>/dev/null || echo "  (exists)"
 
     echo "=== Creating users ==="
+    declare -A FIRST_NAMES=( [fred]="Fred" [sally]="Sally" [alex]="Alex" [prelude]="Prelude" )
+    declare -A LAST_NAMES=( [fred]="Finance" [sally]="Sales" [alex]="Operations" [prelude]="Admin" )
     for user in fred sally alex prelude; do
       echo "  Creating user: ${user}"
       kc_api POST "/${REALM}/users" -d "{
         \"username\":\"${user}\",
         \"enabled\":true,
+        \"firstName\":\"${FIRST_NAMES[$user]}\",
+        \"lastName\":\"${LAST_NAMES[$user]}\",
         \"email\":\"${user}@redhat.com\",
         \"emailVerified\":true,
         \"credentials\":[{\"type\":\"password\",\"value\":\"${CTF_USER_PASSWORD}\",\"temporary\":false}]
@@ -143,11 +147,20 @@ data:
         "protocol": "openid-connect",
         "protocolMapper": "oidc-audience-mapper",
         "config": {
-          "included.client.audience": "retail-mcp",
-          "id.token.claim": "true",
-          "access.token.claim": "true"
+          "included.custom.audience": "spiffe://retail-demo/ns/openshell/sa/default",
+          "id.token.claim": "false",
+          "access.token.claim": "true",
+          "introspection.token.claim": "true"
         }
       }]
     }' 2>/dev/null || echo "  (exists)"
+
+    echo "=== Assigning audience scope to hermes-dashboard ==="
+    SCOPE_ID=$(kc_api GET "/${REALM}/client-scopes" | python3 -c "import sys,json; [print(s['id']) for s in json.load(sys.stdin) if s['name']=='spiffe-mcp-aud']" 2>/dev/null)
+    HD_ID=$(kc_api GET "/${REALM}/clients?clientId=hermes-dashboard" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])" 2>/dev/null)
+    if [ -n "$SCOPE_ID" ] && [ -n "$HD_ID" ]; then
+      kc_api PUT "/${REALM}/clients/${HD_ID}/default-client-scopes/${SCOPE_ID}" 2>/dev/null
+      echo "  assigned"
+    fi
 
     echo "=== Done ==="
