@@ -129,6 +129,9 @@ spec:
               enabled: false
           kagenti-operator-chart:
             controllerManager:
+              manager:
+                image:
+                  tag: 0.3.0-alpha.5
               keycloak:
                 adminSecretNamespace: openshell
                 realm: retail-ctf
