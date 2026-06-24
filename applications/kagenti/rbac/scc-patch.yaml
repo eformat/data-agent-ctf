@@ -27,7 +27,9 @@ requiredDropCapabilities:
 runAsUser:
   type: RunAsAny
 seLinuxContext:
-  type: RunAsAny
+  type: MustRunAs
+  seLinuxOptions:
+    type: spc_t
 seccompProfiles:
   - runtime/default
 supplementalGroups:
