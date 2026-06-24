@@ -164,12 +164,19 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kagenti-system
+  ignoreDifferences:
+    - group: security.openshift.io
+      kind: SecurityContextConstraints
+      name: kagenti-authbridge
+      jsonPointers:
+        - /seLinuxContext
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 10
       backoff:
