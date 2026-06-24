@@ -45,6 +45,8 @@ spec:
           env:
             - name: OPENSHELL_SANDBOX
               value: retail-finance
+            - name: OPENSHELL_SANDBOX_ID
+              value: retail-finance
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
@@ -166,6 +168,8 @@ spec:
           env:
             - name: OPENSHELL_SANDBOX
               value: retail-sales
+            - name: OPENSHELL_SANDBOX_ID
+              value: retail-sales
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
@@ -286,6 +290,8 @@ spec:
           command: ["/opt/openshell/bin/openshell-sandbox"]
           env:
             - name: OPENSHELL_SANDBOX
+              value: retail-ops
+            - name: OPENSHELL_SANDBOX_ID
               value: retail-ops
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
