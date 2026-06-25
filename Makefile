@@ -11,7 +11,10 @@ bootstrap-gpu: ## Deploy with GPU node toleration
 bootstrap-tenant: ## Deploy with tenant ArgoCD
 	./scripts/bootstrap.sh --namespace $(NAMESPACE) --tenant-argocd
 
-test: ## Run end-to-end CTF validation
+test: ## Run end-to-end MCP pipeline tests
+	python3 scripts/test-e2e-mcp.py
+
+test-legacy: ## Run legacy CTF validation (bash)
 	./scripts/test-ctf.sh --namespace $(NAMESPACE)
 
 validate: ## Validate kustomize builds for all applications

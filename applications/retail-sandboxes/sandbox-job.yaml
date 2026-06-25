@@ -37,6 +37,8 @@ spec:
               mountPath: /scripts
             - name: policy
               mountPath: /policy
+            - name: providers
+              mountPath: /providers
       volumes:
         - name: scripts
           configMap:
@@ -44,6 +46,9 @@ spec:
         - name: policy
           configMap:
             name: sandbox-policy
+        - name: providers
+          configMap:
+            name: sandbox-providers
       restartPolicy: OnFailure
 # Secret sandbox-secrets is in ../secrets.enc.yaml (sops encrypted)
 ---
@@ -127,6 +132,12 @@ data:
     echo "  KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}"
     echo "  APPS_DOMAIN=${APPS_DOMAIN}"
 
+    echo "=== Setting up providers ==="
+    openshell settings set --global --key providers_v2_enabled --value true --yes -g "$GATEWAY_NAME" || true
+    openshell provider profile import -f /providers/maas-inference.yaml -g "$GATEWAY_NAME" 2>/dev/null || true
+    openshell provider create --name maas-prod --type maas-inference \
+      --credential "OPENAI_API_KEY=${OPENAI_API_KEY}" -g "$GATEWAY_NAME" 2>/dev/null || true
+
     for dept in finance sales ops; do
       name="retail-${dept}"
       echo "=== Deploying ${name} ==="
@@ -139,11 +150,12 @@ data:
       openshell sandbox delete "$name" -g "$GATEWAY_NAME" 2>/dev/null || true
       sleep 3
 
-      # Create sandbox with policy
+      # Create sandbox with policy and provider
       openshell sandbox create -g "$GATEWAY_NAME" \
         --name "$name" \
         --from "$HERMES_IMAGE" \
         --policy "/tmp/policy-${dept}.yaml" \
+        --provider maas-prod \
         --no-tty
 
       # Wait for Ready
@@ -158,9 +170,9 @@ data:
       openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
 
       # Start hermes (backgrounded — hermes-start.sh never exits)
+      # OPENAI_API_KEY is injected by the maas-prod provider
       openshell sandbox exec -n "$name" -g "$GATEWAY_NAME" --no-tty \
-        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
-               GATEWAY_ALLOW_ALL_USERS=true \
+        -- env GATEWAY_ALLOW_ALL_USERS=true \
                HERMES_ACTIVE_PROFILE="retail-${dept}" \
                HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
                HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \

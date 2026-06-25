@@ -1,0 +1,27 @@
+id: maas-inference
+display_name: MaaS Inference
+description: Model-as-a-Service inference endpoint (Red Hat MaaS)
+category: inference
+inference_capable: true
+credentials:
+  - name: api_key
+    description: OpenAI-compatible API key for MaaS endpoint
+    env_vars: [OPENAI_API_KEY]
+    required: true
+    auth_style: bearer
+    header_name: authorization
+endpoints:
+  - host: maas.apps.ocp.cloud.rhai-tmm.dev
+    port: 443
+    protocol: rest
+    access: read-write
+    enforcement: enforce
+  - host: maas.apps.ocp.cloud.rhai-tmm.dev
+    port: 80
+    protocol: rest
+    access: read-write
+    enforcement: enforce
+binaries:
+  - /opt/hermes/.venv/bin/python*
+  - /usr/bin/python*
+  - /usr/bin/curl

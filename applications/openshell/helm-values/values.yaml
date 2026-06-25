@@ -1,7 +1,7 @@
 ---
 image:
   repository: quay.io/eformat/openshell-gateway
-  tag: 0.0.62-h2ws
+  tag: 0.0.69
 certManager:
   enabled: true
   serverDnsNames:

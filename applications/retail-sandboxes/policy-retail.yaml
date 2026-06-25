@@ -25,17 +25,6 @@ network_policies:
       - path: /opt/hermes/.venv/bin/python*
       - path: /usr/bin/python*
       - path: /usr/bin/curl
-  inference:
-    name: maas-inference
-    endpoints:
-      - host: maas.apps.ocp.cloud.rhai-tmm.dev
-        port: 443
-      - host: maas.apps.ocp.cloud.rhai-tmm.dev
-        port: 80
-    binaries:
-      - path: /opt/hermes/.venv/bin/python*
-      - path: /usr/bin/python*
-      - path: /usr/bin/curl
   npm:
     name: npm-registry
     endpoints:

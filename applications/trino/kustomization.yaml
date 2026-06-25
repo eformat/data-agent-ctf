@@ -6,3 +6,4 @@ resources:
   - helm/
   - config/
   - query-ui/
+  - route.yaml
