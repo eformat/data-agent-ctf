@@ -55,7 +55,7 @@ Each Mentat runs inside an <a href="https://github.com/nvidia/openshell" target=
 
 ![ctf.png](ctf.png)
 
-**How the shields work**: <a href="https://eformat.github.io/data-agent-template/" target="_blank">Flow Visualizer</a>
+**How the shields work**: <a href="https://eformat.github.io/data-agent-ctf/" target="_blank">Flow Visualizer</a>
 
 Click on the boxes in the visualizer to see how the components work.
 
