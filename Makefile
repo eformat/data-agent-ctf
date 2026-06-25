@@ -60,6 +60,7 @@ build-deployer: ## Build + push openshell-deployer (requires $(OPENSHELL_SRC))
 	cp /lib64/libgmp.so.10 /tmp/libgmp.so.10 2>/dev/null || true
 	podman build -t $(REGISTRY)/openshell-deployer:latest -f scripts/Containerfile.openshell-deployer /tmp/
 	podman push $(REGISTRY)/openshell-deployer:latest
+	podman push $(REGISTRY)/openshell-deployer:v0.0.69
 
 build-hermes: ## Build + push hermes-openshell sandbox image
 	podman build -t $(REGISTRY)/hermes-openshell:latest -t $(REGISTRY)/hermes-openshell:0.17.0 -f scripts/Containerfile.hermes-sandbox .
