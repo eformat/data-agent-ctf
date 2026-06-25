@@ -54,7 +54,7 @@ spec:
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
-              value: "sh -c 'sleep 30 && exec /usr/local/bin/hermes-start.sh'"
+              value: "sleep 30; /usr/local/bin/hermes-start.sh"
             - name: OPENSHELL_POLICY_RULES
               value: "/etc/openshell-policy/sandbox-policy.rego"
             - name: OPENSHELL_POLICY_DATA
@@ -181,7 +181,7 @@ spec:
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
-              value: "sh -c 'sleep 30 && exec /usr/local/bin/hermes-start.sh'"
+              value: "sleep 30; /usr/local/bin/hermes-start.sh"
             - name: OPENSHELL_POLICY_RULES
               value: "/etc/openshell-policy/sandbox-policy.rego"
             - name: OPENSHELL_POLICY_DATA
@@ -308,7 +308,7 @@ spec:
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
             - name: OPENSHELL_SANDBOX_COMMAND
-              value: "sh -c 'sleep 30 && exec /usr/local/bin/hermes-start.sh'"
+              value: "sleep 30; /usr/local/bin/hermes-start.sh"
             - name: OPENSHELL_POLICY_RULES
               value: "/etc/openshell-policy/sandbox-policy.rego"
             - name: OPENSHELL_POLICY_DATA
