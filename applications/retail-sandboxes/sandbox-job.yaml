@@ -169,4 +169,9 @@ data:
       echo "  ${name}: https://${name}.${APPS_DOMAIN}"
     done
 
-    echo "=== All sandboxes deployed ==="
+    echo "=== All sandboxes deployed, waiting for hermes startup ==="
+    # Keep the job alive so backgrounded create processes can finish
+    # starting hermes inside each sandbox. They need the CLI connection
+    # to the gateway to relay the exec command.
+    sleep 120
+    echo "=== Done ==="
