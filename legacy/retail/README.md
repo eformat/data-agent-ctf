@@ -58,7 +58,7 @@ graph TB
     subgraph cluster["OpenShift Cluster"]
         subgraph openshell_ns["namespace: openshell"]
             subgraph gw_pod["openshell-0 (StatefulSet)"]
-                GW["OpenShell Gateway<br/>quay.io/eformat/openshell-gateway:0.0.62-h2ws<br/>Port 8080 (TLS + gRPC + HTTP)"]
+                GW["OpenShell Gateway<br/>quay.io/eformat/openshell-gateway:v0.0.69<br/>Port 8080 (TLS + gRPC + HTTP)"]
             end
 
             subgraph oauth_pod["retail-hermes-oauth (Deployment)"]

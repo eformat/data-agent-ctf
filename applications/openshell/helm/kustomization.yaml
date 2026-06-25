@@ -10,4 +10,3 @@ kind: Kustomization
 #     helm:
 #       valuesObject: (contents of values.yaml)
 resources:
-  - values-reference.yaml
