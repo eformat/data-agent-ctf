@@ -79,6 +79,9 @@ data:
     echo "=== Creating realm: ${REALM} ==="
     kc_api POST "" -d "{\"realm\":\"${REALM}\",\"enabled\":true}" 2>/dev/null || echo "  (exists)"
 
+    echo "=== Setting realm theme ==="
+    kc_api PUT "/${REALM}" -d "{\"realm\":\"${REALM}\",\"loginTheme\":\"prelude\"}" 2>/dev/null || echo "  (failed)"
+
     echo "=== Creating client: hermes-dashboard ==="
     kc_api POST "/${REALM}/clients" -d '{
       "clientId": "hermes-dashboard",

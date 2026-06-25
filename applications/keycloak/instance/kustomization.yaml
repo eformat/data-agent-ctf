@@ -6,3 +6,4 @@ resources:
   - keycloak-service-patch.yaml
   - postgres-cr.yaml
   - route.yaml
+  - theme-configmap.yaml
