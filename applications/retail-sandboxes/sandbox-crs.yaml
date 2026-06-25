@@ -5,6 +5,7 @@ metadata:
   name: retail-finance
   namespace: openshell
   labels:
+    openshell.ai/managed-by: openshell
     openshell.ai/sandbox-id: retail-finance
 spec:
   replicas: 1
@@ -18,6 +19,9 @@ spec:
           requests:
             storage: 2Gi
   podTemplate:
+    metadata:
+      annotations:
+        openshell.io/sandbox-id: retail-finance
     spec:
       serviceAccountName: openshell-sandbox
       automountServiceAccountToken: false
@@ -128,6 +132,7 @@ metadata:
   name: retail-sales
   namespace: openshell
   labels:
+    openshell.ai/managed-by: openshell
     openshell.ai/sandbox-id: retail-sales
 spec:
   replicas: 1
@@ -141,6 +146,9 @@ spec:
           requests:
             storage: 2Gi
   podTemplate:
+    metadata:
+      annotations:
+        openshell.io/sandbox-id: retail-sales
     spec:
       serviceAccountName: openshell-sandbox
       automountServiceAccountToken: false
@@ -251,6 +259,7 @@ metadata:
   name: retail-ops
   namespace: openshell
   labels:
+    openshell.ai/managed-by: openshell
     openshell.ai/sandbox-id: retail-ops
 spec:
   replicas: 1
@@ -264,6 +273,9 @@ spec:
           requests:
             storage: 2Gi
   podTemplate:
+    metadata:
+      annotations:
+        openshell.io/sandbox-id: retail-ops
     spec:
       serviceAccountName: openshell-sandbox
       automountServiceAccountToken: false
