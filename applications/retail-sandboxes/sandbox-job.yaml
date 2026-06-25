@@ -139,20 +139,12 @@ data:
       openshell sandbox delete "$name" -g "$GATEWAY_NAME" 2>/dev/null || true
       sleep 3
 
-      # Create sandbox with policy and hermes startup (backgrounded —
-      # hermes-start.sh never exits, so the create blocks otherwise)
-      timeout 120 openshell sandbox create -g "$GATEWAY_NAME" \
+      # Create sandbox with policy
+      openshell sandbox create -g "$GATEWAY_NAME" \
         --name "$name" \
         --from "$HERMES_IMAGE" \
         --policy "/tmp/policy-${dept}.yaml" \
-        --no-tty \
-        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
-               GATEWAY_ALLOW_ALL_USERS=true \
-               HERMES_ACTIVE_PROFILE="retail-${dept}" \
-               HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
-               HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
-               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
-               /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
+        --no-tty
 
       # Wait for Ready
       for i in $(seq 1 40); do
@@ -164,6 +156,16 @@ data:
 
       # Expose service
       openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
+
+      # Start hermes (backgrounded — hermes-start.sh never exits)
+      openshell sandbox exec -n "$name" -g "$GATEWAY_NAME" --no-tty \
+        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
+               GATEWAY_ALLOW_ALL_USERS=true \
+               HERMES_ACTIVE_PROFILE="retail-${dept}" \
+               HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
+               HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
+               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
+               /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
 
       rm -f "/tmp/policy-${dept}.yaml"
       echo "  ${name}: https://${name}.${APPS_DOMAIN}"
