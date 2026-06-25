@@ -337,7 +337,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
   },
   "canvas": {
     "width": 1700,
-    "height": 1187
+    "height": 1223
   },
   "nodes": {
     "sally": {
@@ -369,10 +369,10 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "fontSize": 16
     },
     "cluster": {
-      "x": 620,
-      "y": 25,
-      "w": 940,
-      "h": 540,
+      "x": 80,
+      "y": 15,
+      "w": 1480,
+      "h": 555,
       "type": "boundary",
       "label": "Kubernetes Cluster"
     },
@@ -449,7 +449,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "x": 20,
       "y": 590,
       "w": 1650,
-      "h": 567,
+      "h": 603,
       "type": "boundary",
       "label": "Security Layers",
       "labelAlign": "left"
@@ -638,14 +638,14 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "x": 590,
       "y": 890,
       "w": 560,
-      "h": 260,
+      "h": 296,
       "type": "container",
       "label": "Credential Protection",
       "color": "#f85149"
     },
     "s_tofu": {
       "x": 605,
-      "y": 925,
+      "y": 961,
       "w": 530,
       "h": 32,
       "label": "TOFU Hashing",
@@ -657,11 +657,11 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_nosecrets": {
       "x": 605,
-      "y": 961,
+      "y": 997,
       "w": 530,
       "h": 32,
       "label": "No Static Secrets",
-      "sublabel": "SPIFFE SVID replaces pre-shared keys · auto-registered client",
+      "sublabel": "providers-v2 replaces static mounts · SPIFFE SVID · auto-registered",
       "type": "plugin",
       "inner": true,
       "color": "#f85149",
@@ -669,7 +669,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_shortlived": {
       "x": 605,
-      "y": 997,
+      "y": 1033,
       "w": 530,
       "h": 32,
       "label": "Short-Lived Tokens",
@@ -681,7 +681,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_accesstok": {
       "x": 605,
-      "y": 1033,
+      "y": 1069,
       "w": 530,
       "h": 32,
       "label": "Access Token (not ID token)",
@@ -701,12 +701,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "color": "#3fb950"
     },
     "opa_proxy": {
-      "x": 400,
-      "y": 285,
-      "w": 190,
+      "x": 405,
+      "y": 310,
+      "w": 220,
       "h": 65,
       "label": "OPA Proxy",
-      "sublabel": "Per-Sandbox · 10.200.0.1:3128",
+      "sublabel": "Per-Sandbox · providers-v2",
       "color": "#58a6ff",
       "fontSize": 16
     },
@@ -735,7 +735,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_authproxy": {
       "x": 605,
-      "y": 1069,
+      "y": 1105,
       "w": 530,
       "h": 32,
       "label": "Dashboard Auth Proxy",
@@ -747,7 +747,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_dumpable": {
       "x": 605,
-      "y": 1105,
+      "y": 1141,
       "w": 530,
       "h": 32,
       "label": "PR_SET_DUMPABLE=0",
@@ -775,10 +775,31 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "w": 410,
       "h": 32,
       "label": "Hermes Sandbox Policy",
-      "sublabel": "per-binary: node→NPM, python→MCP+Trino+MaaS+PyPI",
+      "sublabel": "per-binary · inference policy from providers-v2 maas-inference",
       "type": "plugin",
       "inner": true,
       "color": "#58a6ff",
+      "fontSize": 12
+    },
+    "gateway": {
+      "x": 385,
+      "y": 260,
+      "w": 260,
+      "h": 200,
+      "type": "container",
+      "label": "OpenShell Gateway",
+      "color": "#79c0ff"
+    },
+    "s_providers": {
+      "x": 605,
+      "y": 925,
+      "w": 530,
+      "h": 32,
+      "label": "providers-v2 Credential Injection",
+      "sublabel": "gateway holds API key · injects at runtime · contributes network policy",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
       "fontSize": 12
     }
   },
@@ -1413,14 +1434,18 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_nosecrets": {
       "title": "No Static Secrets",
-      "description": "SPIFFE SVIDs replace pre-shared keys and static credentials. The Keycloak client is auto-registered. No secrets are baked into images, config maps, or environment variables.",
+      "description": "The providers-v2 system replaces static secret mounting entirely. SPIFFE SVIDs replace pre-shared keys. The Keycloak client is auto-registered. Provider credentials (API keys) are held by the gateway and injected at runtime — never baked into images, config maps, or environment variables.",
       "details": [
         [
           "Replaced",
-          "Pre-shared keys, static API keys"
+          "Static secret mounts, pre-shared keys"
         ],
         [
           "By",
+          "providers-v2 (gateway-held credentials)"
+        ],
+        [
+          "Identity",
           "SPIFFE SVID (auto-rotated)"
         ],
         [
@@ -1429,7 +1454,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
         ],
         [
           "Defends",
-          "Credential leaks from config/images"
+          "Credential leaks from config/images/env vars"
         ]
       ]
     },
@@ -1665,7 +1690,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_sandbox_policy": {
       "title": "Hermes Sandbox Policy (Process-Level)",
-      "description": "Process-level network policy enforced inside the sandbox pod only. Per-binary allowlist: node can reach the dashboard and NPM, python can reach MCP, Trino, SpiceDB, MaaS, and PyPI. Finer-grained than the K8s NetworkPolicy but only enforced inside the sandbox runtime.",
+      "description": "Process-level network policy enforced inside the sandbox pod. Per-binary allowlist: node can reach the dashboard and NPM, python can reach MCP, Trino, SpiceDB, and PyPI. The MaaS inference endpoint is now contributed automatically by the providers-v2 maas-inference profile — not static policy.",
       "details": [
         [
           "Scope",
@@ -1677,19 +1702,79 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
         ],
         [
           "python binary",
-          "→ MCP, Trino, SpiceDB, MaaS, PyPI"
+          "→ MCP, Trino, SpiceDB, PyPI"
         ],
         [
-          "Granularity",
-          "Per-binary allowlist"
+          "Inference",
+          "MaaS endpoint contributed by providers-v2 maas-inference"
         ],
         [
-          "Relation",
-          "Finer than K8s NetworkPolicy, complementary layer"
+          "Static Policy",
+          "None for inference — provider is self-describing"
         ],
         [
           "Defends",
           "Process-level lateral movement within the pod"
+        ]
+      ]
+    },
+    "gateway": {
+      "title": "OpenShell Gateway (providers-v2)",
+      "description": "The OpenShell Gateway manages credential injection and network policy via the providers-v2 system. It holds provider credentials (e.g. OPENAI_API_KEY for maas-inference), injects them into the sandbox at runtime, and automatically contributes network policy entries for each provider — no static policy needed.",
+      "details": [
+        [
+          "Provider System",
+          "providers-v2"
+        ],
+        [
+          "Credential Store",
+          "Gateway holds API keys (not in sandbox)"
+        ],
+        [
+          "Injection",
+          "Credentials injected into sandbox at runtime"
+        ],
+        [
+          "Network Policy",
+          "Each provider contributes its own policy entry"
+        ],
+        [
+          "OPA Policy",
+          "Managed by gateway, per-sandbox isolation"
+        ],
+        [
+          "Example",
+          "maas-inference → OPENAI_API_KEY + MaaS network entry"
+        ]
+      ]
+    },
+    "s_providers": {
+      "title": "providers-v2 Credential Injection",
+      "description": "The OpenShell Gateway holds provider credentials (e.g. OPENAI_API_KEY for maas-inference) and injects them into the sandbox at runtime. Each provider automatically contributes its own network policy entry — the inference endpoint is allowed without static policy configuration. The gateway is the credential store, not the sandbox.",
+      "details": [
+        [
+          "Source",
+          "OpenShell Gateway (providers-v2)"
+        ],
+        [
+          "Example",
+          "maas-inference provider → OPENAI_API_KEY"
+        ],
+        [
+          "Injection",
+          "Runtime injection into sandbox environment"
+        ],
+        [
+          "Network Policy",
+          "Provider contributes MaaS endpoint to OPA policy"
+        ],
+        [
+          "Static Config",
+          "None — provider system is self-describing"
+        ],
+        [
+          "Defends",
+          "Credential sprawl, static secret mounting"
         ]
       ]
     }
@@ -1752,13 +1837,19 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "badge": "✓"
         },
         {
+          "text": "⬡ Credential: providers-v2 — gateway injects API key at runtime",
+          "mode": "lightup",
+          "target": "s_providers",
+          "badge": "✓"
+        },
+        {
           "text": "⬡ Credential: PR_SET_DUMPABLE=0 — /proc blocked for siblings",
           "mode": "lightup",
           "target": "s_dumpable",
           "badge": "✓"
         },
         {
-          "text": "3b. Auth Proxy forwards with Authorization: Bearer header",
+          "text": "3b. Auth Proxy forwards (JWT + providers-v2 API key)",
           "mode": "arrow",
           "from": "auth_proxy",
           "to": "opa_proxy",
@@ -2053,13 +2144,19 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "badge": "✓"
         },
         {
+          "text": "⬡ Credential: providers-v2 — gateway injects API key at runtime",
+          "mode": "lightup",
+          "target": "s_providers",
+          "badge": "✓"
+        },
+        {
           "text": "⬡ Credential: PR_SET_DUMPABLE=0 — /proc blocked for siblings",
           "mode": "lightup",
           "target": "s_dumpable",
           "badge": "✓"
         },
         {
-          "text": "3b. Auth Proxy forwards with Authorization: Bearer header",
+          "text": "3b. Auth Proxy forwards (JWT + providers-v2 API key)",
           "mode": "arrow",
           "from": "auth_proxy",
           "to": "opa_proxy",
@@ -2303,7 +2400,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "badge": "✓"
         },
         {
-          "text": "1b. Auth Proxy forwards with Authorization: Bearer header",
+          "text": "1b. Auth Proxy forwards (JWT + providers-v2 API key)",
           "mode": "arrow",
           "from": "auth_proxy",
           "to": "opa_proxy",
@@ -2630,7 +2727,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 9,
+          "step": 10,
           "label": "③ MCP tool call with JWT",
           "actions": [
             {
@@ -2640,12 +2737,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 19,
+          "step": 20,
           "label": "④ K8s Service → Envoy",
           "actions": []
         },
         {
-          "step": 21,
+          "step": 22,
           "label": "⑤ Envoy → AuthBridge (ext_authz)",
           "actions": [
             {
@@ -2655,7 +2752,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 24,
+          "step": 25,
           "label": "⑥ AuthBridge: JWKS signature check (kid lookup)",
           "actions": [
             {
@@ -2735,7 +2832,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 26,
+          "step": 27,
           "label": "⑦ JWT signature valid, claims verified ✓",
           "actions": [
             {
@@ -2814,7 +2911,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 28,
+          "step": 29,
           "label": "⑧ Request → MCP Server (identity in headers)",
           "actions": [
             {
@@ -2832,7 +2929,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 29,
+          "step": 30,
           "label": "⑨ MCP extracts preferred_username: sally",
           "actions": [
             {
@@ -2846,7 +2943,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 31,
+          "step": 32,
           "label": "⑩ SpiceDB: CheckPermission",
           "actions": [
             {
@@ -2877,7 +2974,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 33,
+          "step": 34,
           "label": "⑪ Permission: ALLOWED ✓",
           "actions": [
             {
@@ -2913,7 +3010,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 34,
+          "step": 35,
           "label": "⑫ Trino query executes",
           "actions": [
             {
@@ -2937,7 +3034,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 36,
+          "step": 37,
           "label": "⑬ Query results returned",
           "phase": "response",
           "actions": [
@@ -2979,7 +3076,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 37,
+          "step": 38,
           "label": "⑭ Response → Hermes",
           "actions": [
             {
@@ -2989,7 +3086,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 38,
+          "step": 39,
           "label": "⑮ Results displayed to Sally",
           "actions": [
             {
@@ -3070,7 +3167,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 9,
+          "step": 10,
           "label": "③ MCP tool call with JWT in Authorization header",
           "actions": [
             {
@@ -3080,12 +3177,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 19,
+          "step": 20,
           "label": "④ K8s Service → Envoy",
           "actions": []
         },
         {
-          "step": 21,
+          "step": 22,
           "label": "⑤ Envoy → AuthBridge (ext_authz)",
           "actions": [
             {
@@ -3095,7 +3192,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 24,
+          "step": 25,
           "label": "⑥ AuthBridge: RS256 signature + claims verified",
           "actions": [
             {
@@ -3121,7 +3218,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 26,
+          "step": 27,
           "label": "⑦ JWT signature valid, claims verified ✓",
           "actions": [
             {
@@ -3180,7 +3277,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 28,
+          "step": 29,
           "label": "⑧ Request → MCP Server (identity in headers)",
           "actions": [
             {
@@ -3194,7 +3291,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 29,
+          "step": 30,
           "label": "⑨ MCP extracts preferred_username: sally",
           "actions": [
             {
@@ -3204,7 +3301,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 31,
+          "step": 32,
           "label": "⑩ SpiceDB: CheckPermission",
           "actions": [
             {
@@ -3235,7 +3332,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 33,
+          "step": 34,
           "label": "⑪ Permission: DENIED ✗",
           "actions": [
             {
@@ -3271,7 +3368,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 34,
+          "step": 35,
           "label": "⑫ Access denied → MCP returns error",
           "phase": "error",
           "actions": [
@@ -3316,7 +3413,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 35,
+          "step": 36,
           "label": "⑬ Error response → Hermes",
           "actions": [
             {
@@ -3326,7 +3423,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 36,
+          "step": 37,
           "label": "⑭ Permission denied shown to Sally",
           "actions": [
             {

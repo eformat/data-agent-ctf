@@ -51,7 +51,6 @@ metadata:
   name: retail-mcp-all
 spec:
   className: zero-trust-workload-identity-manager-spire
-  jwtTTL: 1h
   namespaceSelector:
     matchLabels:
       kagenti-enabled: "true"
