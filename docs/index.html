@@ -1,0 +1,3591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero-Trust MCP Access — Flow Visualizer</title>
+<style>
+/* FlowStory — Animated Flow Diagram Framework */
+
+:root {
+  /* Dark theme (default) */
+  --fs-bg: #0d1117;
+  --fs-bg-surface: #161b22;
+  --fs-bg-active: #1a2332;
+  --fs-border: #30363d;
+  --fs-text: #c9d1d9;
+  --fs-text-dim: #8b949e;
+  --fs-text-muted: #484f58;
+  --fs-text-bright: #fff;
+  --fs-accent: #58a6ff;
+  --fs-accent-hover: #58a6ff22;
+  --fs-success: #3fb950;
+  --fs-warn: #f0883e;
+  --fs-error: #f85149;
+  --fs-purple: #d2a8ff;
+
+  /* Inspector line backgrounds */
+  --fs-line-add-bg: #1a2e1a;
+  --fs-line-add-color: #3fb950;
+  --fs-line-del-bg: #2d1517;
+  --fs-line-del-color: #f85149;
+  --fs-line-highlight-bg: #1a2332;
+  --fs-line-highlight-color: #58a6ff;
+  --fs-line-plugin-bg: #d2a8ff22;
+  --fs-line-plugin-color: #d2a8ff;
+
+  /* Step hover */
+  --fs-step-hover-bg: #58a6ff22;
+  --fs-step-hover-color: #58a6ff;
+  --fs-step-hover-border: #58a6ff;
+}
+
+body.light {
+  --fs-bg: #fff;
+  --fs-bg-surface: #f6f8fa;
+  --fs-bg-active: #ddf4ff;
+  --fs-border: #d0d7de;
+  --fs-text: #24292f;
+  --fs-text-dim: #656d76;
+  --fs-text-muted: #b0b8c1;
+  --fs-text-bright: #000;
+  --fs-accent: #0969da;
+  --fs-accent-hover: #ddf4ff88;
+  --fs-success: #1a7f37;
+  --fs-warn: #bf8700;
+  --fs-error: #82071e;
+  --fs-purple: #8250df;
+
+  --fs-line-add-bg: #dafbe1;
+  --fs-line-add-color: #116329;
+  --fs-line-del-bg: #ffebe9;
+  --fs-line-del-color: #82071e;
+  --fs-line-highlight-bg: #ddf4ff;
+  --fs-line-highlight-color: #0969da;
+  --fs-line-plugin-bg: #8250df15;
+  --fs-line-plugin-color: #8250df;
+
+  --fs-step-hover-bg: #ddf4ff88;
+  --fs-step-hover-color: #0969da;
+  --fs-step-hover-border: #0969da;
+}
+
+/* === Reset === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  overflow: hidden;
+  transition: background .3s, color .3s;
+}
+
+/* === Right Panel === */
+.fs-panel {
+  position: fixed; top: 0; right: 0; width: 380px; height: 100vh; z-index: 100;
+  display: flex; flex-direction: column;
+  background: var(--fs-bg-surface);
+  border-left: 1px solid var(--fs-border);
+  overflow: hidden;
+  transition: background .3s, border-color .3s;
+}
+
+/* Flow control bar */
+.fs-flow-bar {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--fs-border);
+  flex-shrink: 0;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+
+.fs-flow-bar select {
+  flex: 1; padding: 7px 10px;
+  border: 1px solid var(--fs-border); border-radius: 6px;
+  background: var(--fs-bg); color: var(--fs-text);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+}
+
+.fs-flow-bar button {
+  padding: 7px 14px;
+  border: 1px solid var(--fs-border); border-radius: 6px;
+  background: var(--fs-bg-surface); color: var(--fs-text);
+  cursor: pointer; font-size: 13px; font-family: inherit;
+  transition: all .15s;
+}
+.fs-flow-bar button:hover { border-color: var(--fs-accent); }
+.fs-flow-bar .fs-start { border-color: var(--fs-success); color: var(--fs-success); min-width: 90px; }
+.fs-flow-bar .fs-reset { border-color: var(--fs-warn); color: var(--fs-warn); }
+
+/* === Steps Section === */
+.fs-steps {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--fs-border);
+  flex: 2; overflow-y: auto;
+}
+
+.fs-steps-title { font-weight: 700; margin-bottom: 6px; font-size: 14px; }
+
+.fs-step {
+  margin: 2px 0; color: var(--fs-text-muted);
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; line-height: 1.4;
+  cursor: pointer; padding: 3px 4px; border-radius: 4px;
+  transition: all .2s;
+}
+
+.fs-step:hover {
+  background: var(--fs-step-hover-bg);
+  color: var(--fs-step-hover-color);
+  transform: translateX(4px);
+  border-left: 2px solid var(--fs-step-hover-border);
+  padding-left: 6px;
+}
+
+.fs-step-mark { flex-shrink: 0; width: 16px; text-align: center; font-size: 13px; }
+.fs-step-mark::before { content: '\25CB'; }
+.fs-step.pending { color: var(--fs-text-muted); }
+.fs-step.active { color: var(--fs-accent); }
+.fs-step.active .fs-step-mark::before { content: '\25CF'; }
+.fs-step.done { color: var(--fs-success); }
+.fs-step.done .fs-step-mark::before { content: '\2713'; }
+
+/* === Inspector Section === */
+.fs-inspector {
+  flex: 3; overflow-y: auto; padding: 10px 16px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px;
+}
+
+.fs-inspector-title {
+  font-weight: 700; font-size: 14px; margin-bottom: 6px;
+  font-family: -apple-system, sans-serif; flex-shrink: 0;
+  padding: 0 0 6px; border-bottom: 1px solid var(--fs-border);
+}
+
+.fs-inspector-section {
+  margin: 6px 0 2px; font-weight: 600;
+  color: var(--fs-accent); font-size: 12px;
+  font-family: -apple-system, sans-serif;
+}
+
+.fs-inspector-line {
+  margin: 1px 0; padding: 2px 6px; border-radius: 3px;
+  white-space: pre; line-height: 1.6; transition: all .4s;
+}
+.fs-inspector-line.add {
+  background: var(--fs-line-add-bg); color: var(--fs-line-add-color);
+  border-left: 3px solid var(--fs-line-add-color);
+}
+.fs-inspector-line.del {
+  background: var(--fs-line-del-bg); color: var(--fs-line-del-color);
+  text-decoration: line-through; opacity: .7;
+  border-left: 3px solid var(--fs-line-del-color);
+}
+.fs-inspector-line.keep {
+  color: var(--fs-text-dim); border-left: 3px solid transparent;
+}
+.fs-inspector-line.err {
+  background: var(--fs-line-del-bg); color: var(--fs-line-del-color);
+  border-left: 3px solid var(--fs-line-del-color); font-weight: 600;
+}
+.fs-inspector-line.highlight {
+  background: var(--fs-line-highlight-bg); color: var(--fs-line-highlight-color);
+  border-left: 3px solid var(--fs-line-highlight-color);
+  animation: fs-pulse .8s;
+}
+
+@keyframes fs-pulse { 0% { opacity: .3; } 50% { opacity: 1; } 100% { opacity: 1; } }
+
+.fs-inspector-plugin {
+  margin: 8px 0 4px; padding: 4px 8px;
+  background: var(--fs-line-plugin-bg); border-radius: 4px;
+  color: var(--fs-line-plugin-color); font-weight: 600;
+  font-size: 12px; font-family: -apple-system, sans-serif;
+}
+
+/* === Theme Toggle === */
+.fs-theme-toggle {
+  position: fixed; top: 16px; right: 396px; z-index: 200;
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid var(--fs-border);
+  background: var(--fs-bg-surface); color: var(--fs-text);
+  cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+
+/* === Branding === */
+.fs-brand {
+  position: fixed; top: 10px; left: 16px; z-index: 200;
+  display: flex; align-items: center; gap: 10px;
+  pointer-events: none;
+}
+.fs-brand img { height: 30px; }
+.fs-brand span {
+  font-size: 20px; font-weight: 700; color: var(--fs-text-bright);
+  letter-spacing: -0.3px;
+  font-family: 'Red Hat Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* === Title === */
+.fs-title {
+  position: fixed; top: 14px; left: 0; right: 380px; z-index: 200;
+  text-align: center; font-size: 22px; font-weight: 700;
+  background: linear-gradient(135deg, #58a6ff, #d2a8ff, #f0883e);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; letter-spacing: -0.5px; pointer-events: none;
+}
+
+/* === Legend === */
+.fs-legend {
+  position: fixed; bottom: 16px; left: 16px; z-index: 100;
+  padding: 10px 14px;
+  background: var(--fs-bg-surface);
+  border: 1px solid var(--fs-border);
+  border-radius: 10px; font-size: 13px;
+  transition: all .3s;
+}
+.fs-legend-title { font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+.fs-legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
+.fs-legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+
+/* === Scrollbar === */
+.fs-steps::-webkit-scrollbar,
+.fs-inspector::-webkit-scrollbar { width: 6px; }
+
+.fs-steps::-webkit-scrollbar-track,
+.fs-inspector::-webkit-scrollbar-track { background: transparent; }
+
+.fs-steps::-webkit-scrollbar-thumb,
+.fs-inspector::-webkit-scrollbar-thumb {
+  background: var(--fs-border); border-radius: 3px;
+}
+
+</style>
+</head>
+<body>
+<button class="fs-theme-toggle" id="fs-theme">&#9790;</button>
+<div class="fs-brand" id="fs-brand"></div>
+<div class="fs-title" id="fs-title"></div>
+<div class="fs-panel">
+  <div class="fs-flow-bar">
+    <select id="fs-flow-select"></select>
+    <button class="fs-start" id="fs-play">&#9654; Start</button>
+    <button id="fs-speed">1x</button>
+    <button id="fs-loop" style="border-color:#79c0ff;color:#79c0ff">&#8635; Loop</button>
+    <button class="fs-reset" id="fs-reset">Reset</button>
+  </div>
+  <div class="fs-steps" id="fs-steps">
+    <div class="fs-steps-title">Flow Steps <span style="font-weight:400;font-size:11px;color:var(--fs-text-dim)">&middot; click to jump</span></div>
+    <div id="fs-steps-container"></div>
+  </div>
+  <div class="fs-inspector" id="fs-inspector">
+    <div class="fs-inspector-title" id="fs-inspector-title" style="color:var(--fs-accent)">Request</div>
+    <div id="fs-inspector-content"></div>
+  </div>
+</div>
+<div id="fs-highlight-box" style="display:none;position:fixed;z-index:350;border-radius:10px;pointer-events:none"></div>
+<div id="fs-overlay" style="display:none;position:fixed;top:0;left:0;right:380px;bottom:0;z-index:300;background:rgba(0,0,0,0.6)">
+  <div id="fs-overlay-card" style="position:absolute;background:#161b22ee;border:1px solid #30363d;border-radius:14px;max-width:420px;padding:22px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.5)">
+    <button id="fs-overlay-close" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px">&#10005;</button>
+    <div id="fs-overlay-accent" style="width:4px;height:24px;border-radius:2px;position:absolute;left:0;top:22px"></div>
+    <h2 id="fs-overlay-title" style="margin:0 0 6px;font-size:18px;color:#c9d1d9;font-family:system-ui"></h2>
+    <p id="fs-overlay-desc" style="margin:0 0 14px;font-size:13px;color:#8b949e;line-height:1.5;font-family:system-ui"></p>
+    <div id="fs-overlay-details" style="font-size:12px;font-family:'SF Mono',Menlo,monospace"></div>
+    <button id="fs-overlay-resume" style="margin-top:14px;padding:7px 20px;border:1px solid #3fb950;border-radius:8px;background:transparent;color:#3fb950;font-size:13px;cursor:pointer;font-family:system-ui">&#9654; Resume Flow</button>
+  </div>
+</div>
+<div class="fs-legend" id="fs-legend"></div>
+<canvas id="fs-canvas"></canvas>
+<script>
+var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnPropertyDescriptor;var ft=Object.getOwnPropertyNames;var pt=Object.prototype.hasOwnProperty;var ct=(i,t)=>{for(var e in t)Q(i,e,{get:t[e],enumerable:!0})},dt=(i,t,e,s)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of ft(t))!pt.call(i,o)&&o!==e&&Q(i,o,{get:()=>t[o],enumerable:!(s=ht(t,o))||s.enumerable});return i};var yt=i=>dt(Q({},"__esModule",{value:!0}),i);var Pt={};ct(Pt,{DiagramState:()=>M,Dot:()=>$,Engine:()=>P,FlowStory:()=>it,InspectorPanel:()=>H,OverlayManager:()=>C,PlaybackController:()=>F,Renderer:()=>N,SnapshotManager:()=>J,StepsPanel:()=>R,ThemeManager:()=>E,drawArrowLine:()=>Z,drawLines:()=>tt,edgePt:()=>O,loadDiagram:()=>st,resolveEdge:()=>A,validateDiagram:()=>U});var M=class{constructor(){this.nodes={},this.tooltips={},this.flows={},this.activeNodes=new Set,this.badges={},this.lines=[],this.glowing=new Set,this.fading={},this.dots=[],this.running=!1,this.paused=!1,this.stepIndex=0,this.playbackSpeed=1,this.loopMode=!1,this.activeFlow=null,this.currentStepDone=0,this.stepTimer=null,this.isDark=!0,this.headers=[],this.body=[],this.cycleState=[],this.phase="",this.stepLabel="",this.highlightKey=null,this.snapshots=[]}reset(){this.activeNodes.clear(),this.badges={},this.lines=[],this.glowing.clear(),this.fading={},this.dots=[],this.running=!1,this.paused=!1,this.stepIndex=0,this.currentStepDone=0,this.stepTimer&&(clearTimeout(this.stepTimer),this.stepTimer=null),this.headers=[],this.body=[],this.cycleState=[],this.phase="",this.stepLabel="",this.highlightKey=null,this.snapshots=[]}},P=class{constructor(t,e={}){this.canvas=t,this.ctx=t.getContext("2d"),this.logicalWidth=e.logicalWidth??1250,this.logicalHeight=e.logicalHeight??1050,this.panelWidth=e.panelWidth??380,this.W=0,this.H=0,this._ox=0,this._oy=0,this._sc=1,this._animFrame=null,this.state=new M,this.onDraw=null,this._animate=this._animate.bind(this),this._onResize=this._onResize.bind(this)}tx(t){return this._ox+t*this._sc}ty(t){return this._oy+t*this._sc}ts(t){return t*this._sc}resize(){this.W=this.canvas.width=innerWidth-this.panelWidth,this.H=this.canvas.height=innerHeight,this._sc=Math.min(this.W/this.logicalWidth,this.H/this.logicalHeight)*.98,this._ox=(this.W-this.logicalWidth*this._sc)/2,this._oy=(this.H-this.logicalHeight*this._sc)*.04,this.draw()}draw(){this.ctx.clearRect(0,0,this.W,this.H),typeof this.onDraw=="function"&&this.onDraw(this.ctx,this.state,this)}_animate(){this.draw(),this._animFrame=requestAnimationFrame(this._animate)}_onResize(){this.resize()}start(){addEventListener("resize",this._onResize),this.resize(),this._animFrame||(this._animFrame=requestAnimationFrame(this._animate))}stop(){removeEventListener("resize",this._onResize),this._animFrame&&(cancelAnimationFrame(this._animFrame),this._animFrame=null)}};var N=class{drawBox(t,e,s,o){if(!s||s.type==="boundary"||s.type==="container")return;let{tx:n,ty:r,ts:l,isDark:a,colors:h,activeNodes:f,badges:p,fading:d}=o,c=n(s.x),y=r(s.y),u=l(s.w),g=l(s.h),_=f&&f.has(e),m=p&&p[e]!=null;if(t.save(),s.type==="icon"){t.font=`${l(32)}px serif`,t.textAlign="center",t.fillText("\u{1F464}",c+u/2,y+l(26)),t.font=`bold ${l(16)}px system-ui`,t.fillStyle=h.txt,t.fillText(s.label,c+u/2,y+l(46)),t.restore();return}let x=1;if(d&&d[e]){let L=Date.now()-d[e];x=Math.min(L/500,1),L>500&&delete d[e]}(_||m)&&(t.shadowColor=s.color,t.shadowBlur=l(18)*x,t.globalAlpha=.3+.7*x),t.beginPath(),t.roundRect(c,y,u,g,l(8)),t.fillStyle=_||m?h.boxA:h.box,t.fill(),t.strokeStyle=_||m?s.color:h.bdr,t.lineWidth=l(_||m?2.5:1.5),s.type==="plugin"&&t.setLineDash([l(5),l(4)]),t.stroke(),t.setLineDash([]);let T=s.fs||16;t.fillStyle=h.txt,t.textAlign="center",t.textBaseline="middle",s.soon&&!s.sublabel?(t.font=`bold ${l(T)}px system-ui`,t.fillText(s.label,c+u/2,y+g/2-l(6)),t.font=`bold ${l(9)}px system-ui`,t.fillStyle="#f0883e",t.fillText("COMING SOON",c+u/2,y+g/2+l(8))):s.sublabel?(t.font=`bold ${l(T)}px system-ui`,t.fillText(s.label,c+u/2,y+g/2-l(8)),t.font=`${l(Math.max(T-3,11))}px system-ui`,t.fillStyle=h.dim,s.soon?(t.fillText(s.sublabel,c+u/2,y+g/2+l(6)),t.font=`bold ${l(8)}px system-ui`,t.fillStyle="#f0883e",t.fillText("COMING SOON",c+u/2,y+g/2+l(16))):t.fillText(s.sublabel,c+u/2,y+g/2+l(8))):(t.font=`bold ${l(T)}px system-ui`,t.fillText(s.label,c+u/2,y+g/2)),m&&(Array.isArray(p[e])?p[e]:[p[e]]).forEach((W,X)=>{let w=c+l(8)+X*l(22),v=y+l(5),S=l(9);t.shadowBlur=0,t.globalAlpha=1,t.beginPath(),t.arc(w+S,v+S,S,0,Math.PI*2),t.fillStyle=s.color,t.fill(),t.font=`bold ${l(10)}px system-ui`,t.fillStyle=a?"#0d1117":"#fff",t.textAlign="center",t.textBaseline="middle",t.fillText(String(W),w+S,v+S)}),t.restore()}drawContainer(t,e,s,o){if(!s||s.type!=="container")return;let{tx:n,ty:r,ts:l,isDark:a,glowing:h}=o,f=h&&h.has(e);t.save(),f&&(t.shadowColor=s.color,t.shadowBlur=l(22)),t.beginPath(),t.roundRect(n(s.x),r(s.y),l(s.w),l(s.h),l(10));let p=f?"cc":"55";t.strokeStyle=s.color+p,t.lineWidth=l(f?3:2.5),t.setLineDash([l(7),l(5)]),t.stroke(),t.setLineDash([]),t.font=`bold ${l(12)}px system-ui`,t.fillStyle=s.color+(a?"aa":"99"),t.textAlign="left",t.fillText(s.label,n(s.x+12),r(s.y+18)),t.restore()}drawBoundary(t,e,s,o){if(!s||s.type!=="boundary")return;let{tx:n,ty:r,ts:l,colors:a}=o;t.save(),t.beginPath(),t.roundRect(n(s.x),r(s.y),l(s.w),l(s.h),l(14)),t.strokeStyle=a.bdr,t.lineWidth=l(2.5),t.setLineDash([l(10),l(8)]),t.stroke(),t.setLineDash([]);let h=s.labelAlign||"right";t.font=`${l(13)}px system-ui`,s.labelColor?t.fillStyle=s.labelColor:t.fillStyle=a.dim,t.textAlign=h,h==="right"?t.fillText(s.label,n(s.x+s.w-15),r(s.y+18)):t.fillText(s.label,n(s.x+12),r(s.y+18)),t.restore()}drawSections(t,e,s){if(!e||e.length===0)return;let{tx:o,ty:n,ts:r,isDark:l}=s;t.save(),e.forEach(a=>{if(t.beginPath(),t.roundRect(o(a.x),n(a.y),r(a.w),r(a.h),r(8)),t.fillStyle=l?a.color+"0a":a.color+"08",t.fill(),t.strokeStyle=l?a.color+"30":a.color+"25",t.lineWidth=r(1.5),t.setLineDash([r(4),r(3)]),t.stroke(),t.setLineDash([]),a.label){t.font=`bold ${r(10)}px system-ui`,t.fillStyle=l?a.color+"88":a.color+"99",t.textAlign="left";let h=a.labelX!=null?a.labelX:a.x+12,f=a.labelY!=null?a.labelY:a.y+12;t.fillText(a.label,o(h),n(f))}}),t.restore()}drawStackDecoration(t,e,s,o,n){if(!s||s<1)return;let{tx:r,ty:l,ts:a,isDark:h}=n,f=e.color||"#d2a8ff",p=h?f+"18":f+"12",d=h?f+"44":f+"33",c=o&&o.dx||-8,y=o&&o.dy||-5;t.save();for(let u=s;u>=1;u--)t.beginPath(),t.roundRect(r(e.x+c*u),l(e.y+y*u),a(e.w),a(e.h),a(6)),t.fillStyle=p,t.strokeStyle=d,t.lineWidth=a(1),t.fill(),t.stroke();t.restore()}drawSubBoundary(t,e,s,o,n,r,l){let{tx:a,ty:h,ts:f}=l;t.save(),t.beginPath(),t.roundRect(a(e),h(s),f(o),f(n),f(8)),t.strokeStyle=r+"44",t.lineWidth=f(1.5),t.setLineDash([f(5),f(4)]),t.stroke(),t.setLineDash([]),t.restore()}renderAll(t,e,s){let o=Object.keys(e);for(let n of o){let r=e[n];r.type==="boundary"&&this.drawBoundary(t,n,r,s)}for(let n of o){let r=e[n];r.type==="container"&&this.drawContainer(t,n,r,s)}for(let n of o){let r=e[n];r.type==="container"&&r.sections&&this.drawSections(t,r.sections,s)}for(let n of o){let r=e[n];if(r.subBoundaries)for(let l of r.subBoundaries)this.drawSubBoundary(t,l.x,l.y,l.w,l.h,l.color,s)}for(let n of o){let r=e[n];r.stackCount&&r.type!=="boundary"&&r.type!=="container"&&this.drawStackDecoration(t,r,r.stackCount,r.stackOffset||{dx:-8,dy:-5},s)}for(let n of o){let r=e[n];r.type!=="boundary"&&r.type!=="container"&&this.drawBox(t,n,r,s)}}};function O(i,t,e,s,o){let n=t.x+t.w/2,r=t.y+t.h/2,l=e-n,a=s-r;if(Math.abs(l)<1&&Math.abs(a)<1)return{x:n,y:r};let h=t.w/2,f=t.h/2,p,d;return Math.abs(l)*f>Math.abs(a)*h?(p=n+(l>0?h:-h),d=r+a*(h/Math.abs(l))):(d=r+(a>0?f:-f),p=n+l*(f/Math.abs(a))),{x:p,y:d+(o||0)}}function A(i,t,e,s){let o=e.yOff||0;if(s)return e.fromLeft?{x:t.x,y:t.y+t.h/2+o}:e.fromRight?{x:t.x+t.w,y:t.y+t.h/2+o}:e.fromBottom?{x:t.x+t.w/2+(e.fromXOff||e.xOff||0),y:t.y+t.h+o}:e.fromTop?{x:t.x+t.w/2+(e.fromXOff||0),y:t.y+o}:e.waypoints?O(i,t,e.waypoints[0].x,e.waypoints[0].y,o):{x:t.x+t.w/2,y:t.y+t.h/2+o};if(e.toLeft)return{x:t.x,y:t.y+t.h/2+o};if(e.toTop)return{x:t.x+t.w/2+(e.toXOff||e.xOff||0),y:t.y+o};if(e.toRight)return{x:t.x+t.w,y:t.y+t.h/2+o};if(e.toBottom)return{x:t.x+t.w/2+(e.toXOff||0),y:t.y+t.h+o};if(e.waypoints){let n=e.waypoints;return O(i,t,n[n.length-1].x,n[n.length-1].y,o)}return{x:t.x+t.w/2,y:t.y+t.h/2+o}}function Z(i,t,e,s,o,n,r,l){let{ctx:a,tx:h,ty:f,ts:p,isDark:d}=i;a.save(),a.globalAlpha=l||1,a.beginPath(),a.moveTo(h(t),f(e)),a.lineTo(h(s),f(o)),a.strokeStyle=n,a.lineWidth=p(2.5),a.stroke();let c=Math.atan2(o-e,s-t),y=p(10);if(a.beginPath(),a.moveTo(h(s),f(o)),a.lineTo(h(s)-y*Math.cos(c-.4),f(o)-y*Math.sin(c-.4)),a.lineTo(h(s)-y*Math.cos(c+.4),f(o)-y*Math.sin(c+.4)),a.closePath(),a.fillStyle=n,a.fill(),r!=null){let u=(t+s)/2,g=(e+o)/2,_=p(12);a.beginPath(),a.arc(h(u),f(g),_,0,Math.PI*2),a.fillStyle=n,a.fill(),a.font=`bold ${p(10)}px system-ui`,a.fillStyle=d?"#0d1117":"#fff",a.textAlign="center",a.textBaseline="middle",a.fillText(String(r),h(u),f(g))}a.restore()}function tt(i,t){let{ctx:e,tx:s,ty:o,ts:n,nodes:r,isDark:l}=i;t.forEach(a=>{let h=r[a.from],f=r[a.to];if(!(!h||!f))if(a.waypoints){let p=A(i,h,a,!0),d=A(i,f,a,!1),c=[p,...a.waypoints,d];e.save(),e.globalAlpha=.8,e.beginPath(),e.moveTo(s(c[0].x),o(c[0].y));for(let m=1;m<c.length;m++)e.lineTo(s(c[m].x),o(c[m].y));e.strokeStyle=a.color,e.lineWidth=n(2.5),e.stroke();let y=c[c.length-1],u=c[c.length-2],g=Math.atan2(y.y-u.y,y.x-u.x),_=n(10);if(e.beginPath(),e.moveTo(s(y.x),o(y.y)),e.lineTo(s(y.x)-_*Math.cos(g-.4),o(y.y)-_*Math.sin(g-.4)),e.lineTo(s(y.x)-_*Math.cos(g+.4),o(y.y)-_*Math.sin(g+.4)),e.closePath(),e.fillStyle=a.color,e.fill(),a.num!=null){let m=c[Math.floor(c.length/2)],x=n(12);e.beginPath(),e.arc(s(m.x),o(m.y),x,0,Math.PI*2),e.fillStyle=a.color,e.fill(),e.font=`bold ${n(10)}px system-ui`,e.fillStyle=l?"#0d1117":"#fff",e.textAlign="center",e.textBaseline="middle",e.fillText(String(a.num),s(m.x),o(m.y))}e.restore()}else{let p=A(i,h,a,!0),d=A(i,f,a,!1);if(!a.fromLeft&&!a.fromRight&&!a.fromBottom&&!a.fromTop){let c=f.x+f.w/2,y=f.y+f.h/2;p=O(i,h,c,y,a.yOff||0)}if(!a.toLeft&&!a.toRight&&!a.toBottom&&!a.toTop){let c=h.x+h.w/2,y=h.y+h.h/2;d=O(i,f,c,y,a.yOff||0)}Z(i,p.x,p.y,d.x,d.y,a.color,a.num,.8)}})}function z(i,t,e,s){let o=i.x+i.w/2,n=i.y+i.h/2,r=t-o,l=e-n;if(Math.abs(r)<1&&Math.abs(l)<1)return{x:o,y:n};let a=i.w/2,h=i.h/2,f,p;return Math.abs(r)*h>Math.abs(l)*a?(f=o+(r>0?a:-a),p=n+l*(a/Math.abs(r))):(p=n+(l>0?h:-h),f=o+r*(h/Math.abs(l))),{x:f,y:p+(s||0)}}function at(i,t,e){let s=t.yOff||0;if(e)return t.fromLeft?{x:i.x,y:i.y+i.h/2+s}:t.fromRight?{x:i.x+i.w,y:i.y+i.h/2+s}:t.fromBottom?{x:i.x+i.w/2+(t.fromXOff||t.xOff||0),y:i.y+i.h+s}:t.fromTop?{x:i.x+i.w/2+(t.fromXOff||0),y:i.y+s}:t.waypoints?z(i,t.waypoints[0].x,t.waypoints[0].y,s):{x:i.x+i.w/2,y:i.y+i.h/2+s};if(t.toLeft)return{x:i.x,y:i.y+i.h/2+s};if(t.toTop)return{x:i.x+i.w/2+(t.toXOff||t.xOff||0),y:i.y+s};if(t.toRight)return{x:i.x+i.w,y:i.y+i.h/2+s};if(t.toBottom)return{x:i.x+i.w/2+(t.toXOff||0),y:i.y+i.h+s};if(t.waypoints){let o=t.waypoints;return z(i,o[o.length-1].x,o[o.length-1].y,s)}return{x:i.x+i.w/2,y:i.y+i.h/2+s}}var $=class{constructor(t,e,s,o,n,r,l){this.color=s,this.speed=o||.012,this.t=0,this.cb=n,this.alive=!0,this.ctx=l;let a=l.nodes[t],h=l.nodes[e],f=r&&r.yOff||0,p,d,c=r||{};if(p=at(a,c,!0),d=at(h,c,!1),!c.fromLeft&&!c.fromRight&&!c.fromBottom&&!c.fromTop&&!c.waypoints){let u=h.x+h.w/2,g=h.y+h.h/2;p=z(a,u,g,f)}if(!c.toLeft&&!c.toRight&&!c.toBottom&&!c.toTop&&!c.waypoints){let u=a.x+a.w/2,g=a.y+a.h/2;d=z(h,u,g,f)}r&&r.waypoints?this.pts=[p,...r.waypoints,d]:this.pts=[p,d],this.segLens=[],this.totalLen=0;for(let u=1;u<this.pts.length;u++){let g=this.pts[u].x-this.pts[u-1].x,_=this.pts[u].y-this.pts[u-1].y,m=Math.sqrt(g*g+_*_);this.segLens.push(m),this.totalLen+=m}this.segIdx=0,this.x=this.pts[0].x,this.y=this.pts[0].y;let y=4;this.speed=this.totalLen>0?y/this.totalLen*(o/.02):o}update(){this.t+=this.speed,this.t>=1&&(this.t=1,this.alive=!1,this.cb&&this.cb());let t=this.t*this.totalLen,e=0;for(let o=0;o<this.segLens.length;o++){if(e+this.segLens[o]>=t){let n=(t-e)/this.segLens[o];this.x=this.pts[o].x+(this.pts[o+1].x-this.pts[o].x)*n,this.y=this.pts[o].y+(this.pts[o+1].y-this.pts[o].y)*n,this.segIdx=o;return}e+=this.segLens[o]}let s=this.pts[this.pts.length-1];this.x=s.x,this.y=s.y,this.segIdx=this.segLens.length-1}posAt(t){let e=Math.max(0,Math.min(1,t))*this.totalLen,s=0;for(let n=0;n<this.segLens.length;n++){if(s+this.segLens[n]>=e){let r=(e-s)/this.segLens[n];return{x:this.pts[n].x+(this.pts[n+1].x-this.pts[n].x)*r,y:this.pts[n].y+(this.pts[n+1].y-this.pts[n].y)*r}}s+=this.segLens[n]}let o=this.pts[this.pts.length-1];return{x:o.x,y:o.y}}draw(t){let{tx:e,ty:s,ts:o}=this.ctx;t.save(),t.beginPath(),t.moveTo(e(this.pts[0].x),s(this.pts[0].y));for(let h=0;h<this.segIdx;h++)t.lineTo(e(this.pts[h+1].x),s(this.pts[h+1].y));t.lineTo(e(this.x),s(this.y)),t.strokeStyle=this.color,t.lineWidth=o(2),t.globalAlpha=.3,t.stroke();for(let h=4;h>=1;h--){let f=this.t-h*.06;if(f<=0)continue;let p=this.posAt(f);t.globalAlpha=.15+(1-h/4)*.4,t.beginPath(),t.arc(e(p.x),s(p.y),o(2.5),0,Math.PI*2),t.fillStyle=this.color,t.fill()}t.globalAlpha=1;let n=Math.min(this.segIdx,this.pts.length-2),r=Math.atan2(this.pts[n+1].y-this.pts[n].y,this.pts[n+1].x-this.pts[n].x);t.save(),t.translate(e(this.x),s(this.y)),t.rotate(r);let l=o(13),a=o(7);t.beginPath(),t.moveTo(l/2,0),t.lineTo(l/6,-a/2),t.lineTo(-l/2,-a/2),t.lineTo(-l/2,a/2),t.lineTo(l/6,a/2),t.closePath(),t.fillStyle=this.color,t.shadowColor=this.color,t.shadowBlur=o(16),t.fill(),t.restore(),t.restore()}};var ut={bg:"#0d1117",box:"#161b22",boxA:"#1a2332",bdr:"#30363d",txt:"#c9d1d9",dim:"#8b949e",brt:"#fff"},gt={bg:"#fff",box:"#f6f8fa",boxA:"#ddf4ff",bdr:"#d0d7de",txt:"#24292f",dim:"#656d76",brt:"#000"},E=class{constructor(t=!0){this.isDark=t,this.onToggle=null}toggle(){this.isDark=!this.isDark,typeof this.onToggle=="function"&&this.onToggle(this.isDark)}colors(){return this.isDark?{...ut}:{...gt}}};function mt(i){return{fromLeft:i.fromLeft,toLeft:i.toLeft,fromRight:i.fromRight,toRight:i.toRight,fromBottom:i.fromBottom,fromTop:i.fromTop,toTop:i.toTop,toBottom:i.toBottom,yOff:i.yOff,xOff:i.xOff,fromXOff:i.fromXOff,toXOff:i.toXOff,waypoints:i.waypoints}}function lt(i){return{from:i.f,to:i.to,color:i.c,num:i.num,fromLeft:i.fromLeft,toLeft:i.toLeft,fromRight:i.fromRight,toRight:i.toRight,fromBottom:i.fromBottom,fromTop:i.fromTop,toTop:i.toTop,toBottom:i.toBottom,yOff:i.yOff,xOff:i.xOff,fromXOff:i.fromXOff,toXOff:i.toXOff,waypoints:i.waypoints}}var F=class{constructor(t){this._state=t.state,this._engine=t.engine,this._steps=t.stepsPanel??null,this._inspector=t.inspector??null,this._createDot=t.createDot,this._onFlowComplete=t.onFlowComplete??null,this._flowOrder=t.flowOrder??null,this._listeners=[]}get isActive(){return this._state.running||this._state.paused}get _flow(){return this._state.flows[this._state.activeFlow]??[]}get _order(){return this._flowOrder??Object.keys(this._state.flows)}onChange(t){return this._listeners.push(t),()=>{this._listeners=this._listeners.filter(e=>e!==t)}}_emit(t){for(let e of this._listeners)try{e(t,this)}catch{}}run(){let t=this._state;if(t.paused){this.resume();return}if(t.running){this.pause();return}this.reset(),t.running=!0,t.paused=!1,t.stepIndex=0,t.currentStepDone=0,this._inspector&&this._inspector.init(),this._emit("play"),this._ensureAnimating(),t.stepTimer=setTimeout(()=>this.execStep(),300)}pause(){let t=this._state;t.running&&(t.paused=!0,t.running=!1,t.stepTimer&&(clearTimeout(t.stepTimer),t.stepTimer=null),this._emit("pause"))}resume(){let t=this._state;t.paused&&(t.paused=!1,t.running=!0,this._emit("resume"),this._ensureAnimating(),t.stepTimer=setTimeout(()=>this.execStep(),300/t.playbackSpeed))}execStep(){let t=this._state,e=this._flow;if(!t.running||t.paused||t.stepIndex>=e.length){if(t.stepIndex>=e.length&&(t.running=!1,t.paused=!1,this._emit("reset"),this._onFlowComplete&&this._onFlowComplete(),t.loopMode)){let n=this._order,r=n.indexOf(t.activeFlow),l=n[(r+1)%n.length];t.stepTimer=setTimeout(()=>{this.setFlow(l),this.run()},3e3/t.playbackSpeed)}return}let s=t.stepIndex,o=e[s];if(this._steps){for(let n=0;n<s;n++)this._steps.markDone(n);this._steps.markActive(s),this._steps.scrollTo(s)}if(this._inspector&&this._inspector.step(s+1),o.mode==="arrow"){o.f&&t.activeNodes.add(o.f);let n=this._createDot(o.f,o.to,o.c,.02*t.playbackSpeed,()=>{t.lines.push(lt(o)),o.glow&&t.glowing.add(o.glow),t.activeNodes.add(o.to),this._steps&&this._steps.markDone(s),t.currentStepDone=s+1,this._saveSnapshot(s),t.stepIndex++,t.running&&!t.paused&&(t.stepTimer=setTimeout(()=>this.execStep(),300/t.playbackSpeed))},mt(o));t.dots.push(n)}else if(o.mode==="lightup"){if(t.fading[o.target]=Date.now(),t.activeNodes.add(o.target),o.errColor){let n=t.nodes[o.target];n&&(n._origColor=n._origColor||n.color,n.color=o.errColor)}if(t.badges[o.target]!=null){let n=Array.isArray(t.badges[o.target])?t.badges[o.target]:[t.badges[o.target]];n.push(o.badge),t.badges[o.target]=n}else t.badges[o.target]=o.badge;this._steps&&this._steps.markDone(s),t.currentStepDone=s+1,this._saveSnapshot(s),t.stepIndex++,t.running&&!t.paused&&(t.stepTimer=setTimeout(()=>this.execStep(),800/t.playbackSpeed))}}cycleSpeed(){let t=[.5,1,2],e=t.indexOf(this._state.playbackSpeed);return this._state.playbackSpeed=t[(e+1)%t.length],this._emit("speed"),this._state.playbackSpeed}toggleLoop(){let t=this._state;return t.loopMode=!t.loopMode,this._emit("loop"),t.loopMode&&!t.running&&!t.paused&&this.run(),t.loopMode}setFlow(t){if(!(t in this._state.flows))throw new Error(`PlaybackController: unknown flow "${t}"`);this._state.activeFlow=t,this.reset(),this._emit("flow")}reset(){let t=this._state,e=t.nodes;for(let s of Object.keys(e))e[s]._origColor&&(e[s].color=e[s]._origColor,delete e[s]._origColor);t.running=!1,t.paused=!1,t.stepIndex=0,t.stepTimer&&(clearTimeout(t.stepTimer),t.stepTimer=null),t.dots=[],t.activeNodes.clear(),t.badges={},t.lines=[],t.glowing.clear(),t.fading={},t.currentStepDone=0,t.snapshots=[],t.headers=[],t.body=[],t.cycleState=[],t.phase="",t.stepLabel="",this._steps&&this._steps.initSteps(this._flow),this._engine.draw(),this._emit("reset")}_saveSnapshot(t){let e=this._state;e.snapshots[t]={activeNodes:new Set(e.activeNodes),badges:JSON.parse(JSON.stringify(e.badges)),lines:JSON.parse(JSON.stringify(e.lines)),glowing:new Set(e.glowing)}}_restoreSnapshot(t){let e=this._state;if(t<0){e.activeNodes.clear(),e.badges={},e.lines=[],e.glowing.clear();return}let s=e.snapshots[t];s&&(e.activeNodes=new Set(s.activeNodes),e.badges=JSON.parse(JSON.stringify(s.badges)),e.lines=JSON.parse(JSON.stringify(s.lines)),e.glowing=new Set(s.glowing))}simulateUpTo(t){let e=this._state,s=this._flow;e.activeNodes.clear(),e.badges={},e.lines=[],e.glowing.clear();for(let o=0;o<=t;o++){let n=s[o];if(n.mode==="arrow")n.f&&e.activeNodes.add(n.f),e.lines.push(lt(n)),n.glow&&e.glowing.add(n.glow),e.activeNodes.add(n.to);else if(n.mode==="lightup"){if(e.activeNodes.add(n.target),n.errColor){let r=e.nodes[n.target];r&&(r._origColor=r._origColor||r.color,r.color=n.errColor)}if(e.badges[n.target]!=null){let r=Array.isArray(e.badges[n.target])?e.badges[n.target]:[e.badges[n.target]];r.push(n.badge),e.badges[n.target]=r}else e.badges[n.target]=n.badge}this._saveSnapshot(o)}}jumpToStep(t){let e=this._state;if(e.running&&(e.running=!1,e.stepTimer&&(clearTimeout(e.stepTimer),e.stepTimer=null)),e.snapshots[t]||this.simulateUpTo(t),this._restoreSnapshot(t),e.currentStepDone=t+1,e.stepIndex=t+1,this._steps){for(let o=0;o<=t;o++)this._steps.markDone(o);this._steps.markActive(t);let s=this._flow;for(let o=t+1;o<s.length;o++)this._steps.markPending(o)}if(this._inspector){this._inspector.init();for(let s=1;s<=t+1;s++)this._inspector.step(s)}e.dots=[],e.fading={},e.paused=!0,this._emit("pause"),this._engine.draw()}_ensureAnimating(){this._engine._animFrame||(this._engine._animFrame=requestAnimationFrame(this._engine._animate))}};var J=class{constructor({state:t}){this.state=t,this.snapshots=[]}_cloneState(){let{activeNodes:t,badges:e,lines:s,glowing:o}=this.state;return{activeNodes:new Set(t),badges:JSON.parse(JSON.stringify(e)),lines:JSON.parse(JSON.stringify(s)),glowing:new Set(o)}}_applySnapshot(t){this.state.activeNodes=new Set(t.activeNodes),this.state.badges=JSON.parse(JSON.stringify(t.badges)),this.state.lines=JSON.parse(JSON.stringify(t.lines)),this.state.glowing=new Set(t.glowing)}_clearState(){this.state.activeNodes.clear(),this.state.badges={},this.state.lines=[],this.state.glowing.clear()}save(t){this.snapshots[t]=this._cloneState()}restore(t){if(t<0){this._clearState();return}let e=this.snapshots[t];e&&this._applySnapshot(e)}simulateUpTo(t,e,s){this._clearState();for(let o=0;o<=t;o++)s(e[o],this.state),this.save(o)}jumpTo(t,e,s){this.snapshots[t]?this.restore(t):this.simulateUpTo(t,e,s)}clear(){this.snapshots=[]}};function j(i){return i.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}var C=class{constructor(t,e,s=380){this._dom=t,this._cb=e,this._panelWidth=s,this._open=!1,this._wasRunning=!1,this._highlightKey=null,this._dom.overlay.addEventListener("click",o=>{o.target===this._dom.overlay&&this.close()})}get isOpen(){return this._open}get highlightKey(){return this._highlightKey}show(t,e,s,o){if(!s)return;let n=e,r=s,{tx:l,ty:a,ts:h,isDark:f,isRunning:p,isPaused:d,setRunning:c,setPaused:y,clearStepTimer:u,requestDraw:g}=this._cb;this._wasRunning=p(),this._highlightKey=t,p()&&!d()&&(y(!0),c(!1),u(),o&&o.updatePlayBtn&&o.updatePlayBtn());let _=this._dom.overlayCard,m=r.title||r.t,x=r.description||r.d,T=r.details||r.dt,L=r.links,W=r.logo;this._dom.overlayAccent.style.background=n.color||"#58a6ff",this._dom.overlayTitle.textContent=m,this._dom.overlayTitle.style.color=n.color||"#c9d1d9",this._dom.overlayDesc.textContent=x;let X=_.querySelector("img.overlay-logo");if(X&&X.remove(),W){let k=document.createElement("img");k.className="overlay-logo",k.src=W,k.style.cssText="height:24px;margin-bottom:8px",this._dom.overlayTitle.parentNode.insertBefore(k,this._dom.overlayTitle)}let w="";T&&T.forEach(([k,V])=>{w+=`<div style="display:flex;gap:12px;padding:5px 0;border-bottom:1px solid #21262d"><span style="color:#8b949e;min-width:110px;flex-shrink:0">${j(k)}</span><span style="color:#c9d1d9">${j(V)}</span></div>`}),L&&(w+='<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">',L.forEach(([k,V])=>{w+=`<a href="${V}" target="_blank" rel="noopener" style="color:#58a6ff;font-size:12px;text-decoration:none;padding:4px 10px;border:1px solid #30363d;border-radius:6px;font-family:system-ui;transition:all .15s" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">${j(k)} &#8599;</a>`}),w+="</div>"),this._dom.overlayDetails.innerHTML=w;let v=l(n.x),S=a(n.y),D=h(n.w),rt=h(n.h),ot=innerWidth-this._panelWidth,I,nt;v+D+440<ot?I=v+D+20:v-440>0?I=v-440:I=Math.max(10,(ot-420)/2),nt=Math.max(10,Math.min(S-40,innerHeight-500)),_.style.left=I+"px",_.style.top=nt+"px",this._dom.overlay.style.display="block";let b=this._dom.highlightBox;b.style.left=v+"px",b.style.top=S+"px",b.style.width=D+"px",b.style.height=rt+"px",b.style.border=`3px solid ${n.color||"#58a6ff"}`,b.style.boxShadow=`0 0 30px ${n.color||"#58a6ff"}88, inset 0 0 20px ${n.color||"#58a6ff"}22`,b.style.background=f()?"#161b22":"#f6f8fa",b.style.display="flex",b.style.flexDirection="column",b.style.alignItems="center",b.style.justifyContent="center",b.style.fontFamily="system-ui",b.style.color=f()?"#c9d1d9":"#24292f",b.innerHTML=`<div style="font-weight:700;font-size:${D>150?16:13}px">${j(n.label)}</div>`+(n.sublabel?`<div style="font-size:${D>150?12:10}px;color:#8b949e">${j(n.sublabel)}</div>`:""),b.style.transform="none",this._open=!0,g()}close(){this._dom.overlay.style.display="none";let t=this._dom.overlayCard.querySelector("img.overlay-logo");t&&t.remove(),this._dom.highlightBox.style.display="none",this._highlightKey=null,this._open=!1,this._cb.requestDraw(),this._wasRunning&&(this._cb.setPaused(!1),this._cb.setRunning(!0),this._cb.resumeAnimation())}};function _t(i){return i.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}var R=class{constructor(t){this._container=t,this._steps=[],this.onStepClick=null}init(t){this._steps=t,this._container.innerHTML="",t.forEach((e,s)=>{let o=document.createElement("div");o.className="fs-step pending",o.id="step-"+s,o.innerHTML=`<span class="fs-step-mark"></span><span>${_t(e.t)}</span>`,o.addEventListener("click",()=>{this.onStepClick&&this.onStepClick(s)}),this._container.appendChild(o)})}updateStep(t,e){let s=document.getElementById("step-"+t);s&&(s.className="fs-step "+e)}setActiveStep(t){this._steps.forEach((e,s)=>{s<t?this.updateStep(s,"done"):s===t?this.updateStep(s,"active"):this.updateStep(s,"pending")})}markDoneThrough(t){this._steps.forEach((e,s)=>{this.updateStep(s,s<=t?"done":"pending")})}scrollToStep(t){let e=document.getElementById("step-"+t);e&&e.scrollIntoView({block:"nearest",behavior:"smooth"})}reset(){this._steps.forEach((t,e)=>{this.updateStep(e,"pending")})}get length(){return this._steps.length}};function q(i){return i.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function B(i){return i.map(t=>({...t}))}var H=class{constructor(t,e){this._titleEl=t,this._contentEl=e,this.headers=[],this.body=[],this.cycleState=[],this.stepLabel="",this._phase="request"}init(t){this.headers=(t.headers||[]).map(e=>({v:e.v,s:e.s||"keep",id:e.id})),this.body=(t.body||[]).map(e=>({v:e.v,s:e.s||"keep",id:e.id})),this.cycleState=(t.cycleState||[]).map(e=>({v:e.v,s:e.s||"keep",id:e.id})),this.stepLabel=t.label||"",this.setPhase(t.phase||"request"),this.render()}setPhase(t){this._phase=t,t==="request"?(this._titleEl.textContent="Request",this._titleEl.style.color="#58a6ff"):t==="response"?(this._titleEl.textContent="Response",this._titleEl.style.color="#3fb950"):t==="error"&&(this._titleEl.textContent="Error Response",this._titleEl.style.color="#f85149")}applyMutation(t){if(t.resetStyles!==!1&&this.resetStyles(),t.phase&&this.setPhase(t.phase),t.label!==void 0&&(this.stepLabel=t.label),t.replaceHeaders&&(this.headers=t.replaceHeaders.map(e=>({v:e.v,s:e.s||"keep",id:e.id}))),t.replaceBody&&(this.body=t.replaceBody.map(e=>({v:e.v,s:e.s||"keep",id:e.id}))),t.replaceCycleState&&(this.cycleState=t.replaceCycleState.map(e=>({v:e.v,s:e.s||"keep",id:e.id}))),t.cycleState&&!t.replaceCycleState&&(this.cycleState=t.cycleState.map(e=>({v:e.v,s:e.s||"keep",id:e.id}))),t.clearCycleState&&(this.cycleState=[]),t.actions)for(let e of t.actions)e.action==="add"?this._addLine(e.target||"headers",{v:e.value,s:e.style||"add",id:e.id}):e.action==="remove"?this._removeLine(e.id):e.id&&e.style&&this._setStyle(e.id,e.style);this.render()}resetStyles(){let t=e=>{e.forEach(s=>{s.s!=="del"&&s.s!=="err"&&(s.s="keep")})};t(this.headers),t(this.body),t(this.cycleState)}_setStyle(t,e){let s=this._findLine(t);s&&(s.s=e)}_findLine(t){return this.headers.find(e=>e.id===t)||this.body.find(e=>e.id===t)||this.cycleState.find(e=>e.id===t)}_addLine(t,e){let s=this[t];s&&s.push(e)}_removeLine(t){for(let e of[this.headers,this.body,this.cycleState]){let s=e.findIndex(o=>o.id===t);if(s!==-1){e.splice(s,1);return}}}render(){let t="";this.stepLabel&&(t+=`<div class="fs-inspector-plugin">${q(this.stepLabel)}</div>`),t+='<div class="fs-inspector-section">Headers:</div>',this.headers.forEach(e=>{t+=`<div class="fs-inspector-line ${e.s}">${q(e.v)}</div>`}),t+='<div class="fs-inspector-section">Body:</div>',this.body.forEach(e=>{t+=`<div class="fs-inspector-line ${e.s}">${q(e.v)}</div>`}),this.cycleState.length>0&&(t+='<div class="fs-inspector-section">CycleState:</div>',this.cycleState.forEach(e=>{t+=`<div class="fs-inspector-line ${e.s}">${q(e.v)}</div>`})),this._contentEl.innerHTML=t}setLabel(t){this.stepLabel=t}snapshot(){return{headers:B(this.headers),body:B(this.body),cycleState:B(this.cycleState),stepLabel:this.stepLabel,phase:this._phase}}restore(t){this.headers=B(t.headers),this.body=B(t.body),this.cycleState=B(t.cycleState),this.stepLabel=t.stepLabel,this.setPhase(t.phase),this.render()}static highlight(t){return{actions:[{id:t,style:"highlight"}]}}static del(t){return{actions:[{id:t,style:"del"}]}}static addHeader(t,e){return{actions:[{action:"add",target:"headers",value:t,id:e}]}}static addBody(t,e){return{actions:[{action:"add",target:"body",value:t,id:e}]}}};function U(i){let t=[];if(i==null||typeof i!="object"||Array.isArray(i))return{valid:!1,errors:["Diagram must be a non-null object"]};bt(i.meta,t);let e=wt(i.nodes,t);return vt(i.flows,e,t),i.tooltips!==void 0&&kt(i.tooltips,e,t),i.inspector!==void 0&&xt(i.inspector,t),i.canvas!==void 0&&Tt(i.canvas,t),i.theme!==void 0&&Lt(i.theme,t),t.length===0?{valid:!0}:{valid:!1,errors:t}}function bt(i,t){if(i==null||typeof i!="object"||Array.isArray(i)){t.push("meta: must be an object");return}(typeof i.title!="string"||i.title.length===0)&&t.push("meta.title: must be a non-empty string")}function wt(i,t){let e=new Set;if(i==null||typeof i!="object"||Array.isArray(i))return t.push("nodes: must be a non-empty object"),e;let s=Object.keys(i);if(s.length===0)return t.push("nodes: must contain at least one node"),e;for(let o of s){e.add(o);let n=i[o],r=`nodes.${o}`;if(n==null||typeof n!="object"||Array.isArray(n)){t.push(`${r}: must be an object`);continue}K(n,"x",r,t),K(n,"y",r,t),K(n,"w",r,t),K(n,"h",r,t),n.type!=="boundary"&&n.label!==void 0&&typeof n.label!="string"&&t.push(`${r}.label: must be a string`)}return e}function vt(i,t,e){if(i==null||typeof i!="object"||Array.isArray(i)){e.push("flows: must be a non-empty object");return}let s=Object.keys(i);if(s.length===0){e.push("flows: must contain at least one flow");return}for(let o of s){let n=i[o],r=`flows.${o}`;if(n==null||typeof n!="object"||Array.isArray(n)){e.push(`${r}: must be an object with label and steps`);continue}if((typeof n.label!="string"||n.label.length===0)&&e.push(`${r}.label: must be a non-empty string`),!Array.isArray(n.steps)){e.push(`${r}.steps: must be an array`);continue}for(let l=0;l<n.steps.length;l++)St(n.steps[l],`${r}.steps[${l}]`,t,e)}}function St(i,t,e,s){if(i==null||typeof i!="object"||Array.isArray(i)){s.push(`${t}: must be an object`);return}if((typeof i.text!="string"||i.text.length===0)&&s.push(`${t}.text: must be a non-empty string`),i.mode!=="arrow"&&i.mode!=="lightup"){s.push(`${t}.mode: must be "arrow" or "lightup"`);return}i.mode==="arrow"&&(G(i,"from",t,s),G(i,"to",t,s),G(i,"color",t,s),i.num===void 0?s.push(`${t}.num: required for arrow steps`):(typeof i.num!="number"||!isFinite(i.num))&&s.push(`${t}.num: must be a finite number`),et(i.from,"from",t,e,s),et(i.to,"to",t,e,s)),i.mode==="lightup"&&(G(i,"target",t,s),i.badge===void 0&&s.push(`${t}.badge: required for lightup steps`),et(i.target,"target",t,e,s))}function kt(i,t,e){if(typeof i!="object"||Array.isArray(i)||i==null){e.push("tooltips: must be an object");return}for(let s of Object.keys(i)){t.has(s)||e.push(`tooltips.${s}: references unknown node "${s}"`);let o=i[s];if(o==null||typeof o!="object"||Array.isArray(o)){e.push(`tooltips.${s}: must be an object`);continue}(typeof o.title!="string"||o.title.length===0)&&e.push(`tooltips.${s}.title: must be a non-empty string`)}}function xt(i,t){if(typeof i!="object"||Array.isArray(i)||i==null){t.push("inspector: must be an object");return}i.initialHeaders!==void 0&&!Array.isArray(i.initialHeaders)&&t.push("inspector.initialHeaders: must be an array"),i.initialBody!==void 0&&!Array.isArray(i.initialBody)&&t.push("inspector.initialBody: must be an array"),i.mutations!==void 0&&(typeof i.mutations!="object"||Array.isArray(i.mutations)||i.mutations==null)&&t.push("inspector.mutations: must be an object keyed by flow name")}function Tt(i,t){if(typeof i!="object"||Array.isArray(i)||i==null){t.push("canvas: must be an object");return}i.width!==void 0&&(typeof i.width!="number"||!isFinite(i.width)||i.width<=0)&&t.push("canvas.width: must be a positive number"),i.height!==void 0&&(typeof i.height!="number"||!isFinite(i.height)||i.height<=0)&&t.push("canvas.height: must be a positive number")}function Lt(i,t){typeof i=="string"?i!=="dark"&&i!=="light"&&t.push('theme: must be "dark", "light", or an object'):(typeof i!="object"||Array.isArray(i)||i==null)&&t.push('theme: must be "dark", "light", or an object')}function K(i,t,e,s){i[t]===void 0?s.push(`${e}.${t}: required`):(typeof i[t]!="number"||!isFinite(i[t]))&&s.push(`${e}.${t}: must be a finite number`)}function G(i,t,e,s){(typeof i[t]!="string"||i[t].length===0)&&s.push(`${e}.${t}: must be a non-empty string`)}function et(i,t,e,s,o){typeof i=="string"&&i.length>0&&s.size>0&&(s.has(i)||o.push(`${e}.${t}: references unknown node "${i}"`))}var Y={left:{from:"fromLeft",to:"toLeft"},right:{from:"fromRight",to:"toRight"},top:{from:"fromTop",to:"toTop"},bottom:{from:"fromBottom",to:"toBottom"}};async function st(i){let t;if(typeof i=="string"){let s=await fetch(i);if(!s.ok)throw new Error(`Failed to fetch diagram from "${i}": ${s.status} ${s.statusText}`);try{t=await s.json()}catch(o){throw new Error(`Failed to parse diagram JSON from "${i}": ${o.message}`)}}else if(i!=null&&typeof i=="object"&&!Array.isArray(i))t=JSON.parse(JSON.stringify(i));else throw new Error("loadDiagram() expects a URL string or a diagram object");At(t);let e=U(t);if(!e.valid)throw new Error(`Invalid diagram:
+  `+e.errors.join(`
+  `));return Ot(t),Bt(t.nodes),t.flows,t.tooltips===void 0&&(t.tooltips={}),t.inspector===void 0&&(t.inspector={}),Dt(t.flows),t}function At(i){if(i.flows){for(let t of Object.values(i.flows))if(!t.label&&t.title&&(t.label=t.title,delete t.title),Array.isArray(t.steps))for(let e of t.steps){if(e.mode||(e.from&&e.to?e.mode="arrow":e.target&&(e.mode="lightup")),e.mode==="arrow"&&e.num===void 0&&e.label!==void 0){let s=parseInt(e.label,10);e.num=isNaN(s)?e.label:s,delete e.label}e.mode==="arrow"&&e.num===void 0&&e.badge!==void 0&&(e.num=e.badge),e.mode==="lightup"&&e.badge===void 0&&e.label!==void 0&&(e.badge=e.label,delete e.label)}}if(i.canvas&&(i.canvas.w&&!i.canvas.width&&(i.canvas.width=i.canvas.w,delete i.canvas.w),i.canvas.h&&!i.canvas.height&&(i.canvas.height=i.canvas.h,delete i.canvas.h)),i.tooltips)for(let t of Object.values(i.tooltips))t.details&&!Array.isArray(t.details)&&(t.details=Object.entries(t.details));if(i.inspector?.initialState?.headers)for(let t of i.inspector.initialState.headers)t.text&&!t.value&&(t.value=t.text,delete t.text);if(i.inspector?.initialState?.body)for(let t of i.inspector.initialState.body)t.text&&!t.value&&(t.value=t.text,delete t.text);if(i.inspector?.mutations){for(let t of Object.values(i.inspector.mutations))if(Array.isArray(t)){for(let e of t)if(Array.isArray(e.actions)){let s=[];for(let o of e.actions){if(typeof o=="string"){o==="replaceHeaders"?e._replaceNext="headers":o==="replaceBody"&&(e._replaceNext="body");continue}o.text&&!o.value&&(o.value=o.text,delete o.text),s.push(o)}e._replaceNext==="headers"&&!e.replaceHeaders?(e.replaceHeaders=s.map(o=>({value:o.value||o.text,style:o.style||"keep",id:o.id})),e.actions=[],delete e._replaceNext):e._replaceNext==="body"&&!e.replaceBody?(e.replaceBody=s.map(o=>({value:o.value||o.text,style:o.style||"keep",id:o.id})),e.actions=[],delete e._replaceNext):e.actions=s}}}}function Ot(i){i.canvas||(i.canvas={}),i.canvas.width===void 0&&(i.canvas.width=1250),i.canvas.height===void 0&&(i.canvas.height=1050)}function Bt(i){for(let t of Object.keys(i)){let e=i[t];e.type===void 0&&(e.type="box"),e.fontSize===void 0&&(e.fontSize=16),e.color===void 0&&(e.color="#58a6ff"),e.fs===void 0&&(e.fs=e.fontSize)}}function Dt(i){for(let t of Object.keys(i)){let s=i[t].steps;if(Array.isArray(s))for(let o of s)o.mode==="arrow"&&Mt(o)}}function Mt(i){let t=i.edge;if(!(!t||typeof t!="object")){if(t.fromSide&&Y[t.fromSide]){let e=Y[t.fromSide].from;i[e]=!0}if(t.toSide&&Y[t.toSide]){let e=Y[t.toSide].to;i[e]=!0}t.fromXOffset!==void 0&&(i.fromXOff=t.fromXOffset),t.toXOffset!==void 0&&(i.toXOff=t.toXOffset),t.yOffset!==void 0&&(i.yOff=t.yOffset),Array.isArray(t.waypoints)&&(i.waypoints=t.waypoints),delete i.edge}}var it=class{constructor(t,e={}){this._canvas=t,this._options=e,this._engine=new P(t,{panelWidth:e.panelWidth??380}),this._theme=new E(!0),this._renderer=new N,this._engine.onDraw=(s,o,n)=>{this._draw(s,o,n)},this._theme.onToggle=s=>{this._engine.state.isDark=s,typeof document<"u"&&document.body.classList.toggle("light",!s),this._engine.draw()},this._stepsPanel=null,this._inspector=null,this._overlay=null,this._playback=null,this._snapshot=null,this._diagram=null}async load(t){let e=await st(t);this._diagram=e;let s=this._engine.state;if(s.nodes=e.nodes,s.tooltips=e.tooltips,s.isDark=this._theme.isDark,e.canvas&&(e.canvas.width&&(this._engine.logicalWidth=e.canvas.width),e.canvas.height&&(this._engine.logicalHeight=e.canvas.height)),e.theme){let h=e.theme==="dark";this._theme.isDark!==h&&this._theme.toggle()}s.flows={},this._flowLabels={};for(let[h,f]of Object.entries(e.flows))this._flowLabels[h]=f.label,s.flows[h]=(f.steps||[]).map(p=>{let d={...p};return d.from!==void 0&&d.f===void 0&&(d.f=d.from,delete d.from),d.text!==void 0&&d.t===void 0&&(d.t=d.text,delete d.text),d.color!==void 0&&d.c===void 0&&(d.c=d.color,delete d.color),d.num===void 0&&d.badge!==void 0&&(d.num=d.badge),d});let o=Object.keys(s.flows);s.activeFlow=o[0]||null;let n=this._options.stepsContainer||this._options.stepsElement;n&&(this._stepsPanel=new R(n),s.activeFlow&&this._stepsPanel.init(s.flows[s.activeFlow]));let r=this._options.inspectorTitle,l=this._options.inspectorContent;if(r&&l){this._inspector=new H(r,l);let h=e.inspector?.initialState;if(h){let f=p=>({v:p.value||p.v,s:p.style||p.s||"keep",id:p.id});this._inspector.init({headers:(h.headers||[]).map(f),body:(h.body||[]).map(f),cycleState:(h.cycleState||[]).map(f)}),h.phase&&this._inspector.setPhase(h.phase),this._inspector.render()}}(this._options.overlay||this._options.overlayElement)&&this._setupOverlay(),this._setupPlayback(),this._stepsPanel&&this._playback&&(this._stepsPanel.onStepClick=h=>{this._playback.jumpToStep(h)}),this._setupBranding(e),this._setupTitle(e),this._setupLegend(e),this._setupFlowSelector(),this._setupButtons(),this._setupCanvasClick(),this._engine.start()}play(t){if(this._playback){if(t&&t!==this._engine.state.activeFlow&&(this._playback.setFlow(t),this._stepsPanel)){let e=this._engine.state.flows[t];e&&this._stepsPanel.init(e)}this._playback.run()}}pause(){this._playback&&this._playback.pause()}resume(){this._playback&&this._playback.resume()}reset(){this._playback&&this._playback.reset()}jumpTo(t){this._playback&&this._playback.jumpToStep(t)}setSpeed(t){this._engine&&(this._engine.state.playbackSpeed=t)}toggleLoop(){if(this._playback)return this._playback.toggleLoop()}toggleTheme(){this._theme.toggle()}get state(){return this._engine.state}get flows(){return Object.keys(this._engine.state.flows)}get isPlaying(){return this._engine.state.running}get isPaused(){return this._engine.state.paused}_setupBranding(t){let e=this._options.brand;if(!e||!t.meta?.branding)return;let s=t.meta.branding;if(e.innerHTML="",s.logo){let o=document.createElement("img");o.src=s.logo,o.alt=s.title||"",e.appendChild(o)}if(s.title){let o=document.createElement("span");o.textContent=s.title,e.appendChild(o)}}_setupTitle(t){let e=this._options.title;if(!e)return;let s=t.meta?.title||"";e.innerHTML=s,this._titleEl=e,this._updateFlowLabel()}_updateFlowLabel(){if(!this._titleEl)return;let t=this._engine.state,e=this._flowLabels[t.activeFlow]||"",s=this._diagram?.meta?.title||"";this._titleEl.innerHTML=s+(e?` &middot; <span style="font-weight:700;-webkit-text-fill-color:#f0883e">${e}</span>`:"")}_setupLegend(t){let e=this._options.legend;if(!(!e||!t.legend)){e.innerHTML='<div class="fs-legend-title">Legend</div>';for(let s of t.legend){let o=document.createElement("div");o.className="fs-legend-item";let n=document.createElement("div");n.className="fs-legend-dot",n.style.background=s.color,o.appendChild(n),o.appendChild(document.createTextNode(s.label)),e.appendChild(o)}}}_setupFlowSelector(){let t=this._options.flowSelect;if(!t)return;let e=this._engine.state,s=this._diagram.flowOrder||Object.keys(e.flows);t.innerHTML="";for(let o of s){let n=document.createElement("option");n.value=o,n.textContent=this._flowLabels[o]||o,t.appendChild(n)}t.value=e.activeFlow,t.addEventListener("change",()=>{let o=t.value;this.reset(),e.activeFlow=o,this._stepsPanel&&this._stepsPanel.init(e.flows[o]),this._updateFlowLabel(),this._engine.draw()})}_setupButtons(){let t=this._options,e=this;if(t.playBtn&&t.playBtn.addEventListener("click",()=>{e.play();let s=e._engine.state;t.playBtn.innerHTML=s.running&&!s.paused?"&#9646;&#9646; Pause":"&#9654; Start"}),t.resetBtn&&t.resetBtn.addEventListener("click",()=>{e.reset(),t.playBtn&&(t.playBtn.innerHTML="&#9654; Start")}),t.speedBtn){let s=[1,2,.5],o=0;t.speedBtn.addEventListener("click",()=>{o=(o+1)%s.length,e._engine.state.playbackSpeed=s[o],t.speedBtn.textContent=s[o]+"x"})}t.loopBtn&&t.loopBtn.addEventListener("click",()=>{e._engine.state.loopMode=!e._engine.state.loopMode,t.loopBtn.textContent=e._engine.state.loopMode?"\u27F3 Loop ON":"\u27F3 Loop",t.loopBtn.style.borderColor=e._engine.state.loopMode?"#3fb950":"#79c0ff",t.loopBtn.style.color=e._engine.state.loopMode?"#3fb950":"#79c0ff"}),t.themeBtn&&t.themeBtn.addEventListener("click",()=>{e.toggleTheme(),t.themeBtn.innerHTML=e._theme.isDark?"&#9790;":"&#9788;"})}closeOverlay(){this._overlay&&this._overlay.close()}_draw(t,e,s){let o=this._theme.colors(),n=this._theme.isDark;t.fillStyle=o.bg,t.fillRect(0,0,s.W,s.H);let r={ctx:t,tx:l=>s.tx(l),ty:l=>s.ty(l),ts:l=>s.ts(l),isDark:n,colors:o,activeNodes:e.activeNodes,badges:e.badges,glowing:e.glowing,fading:e.fading,nodes:e.nodes};this._renderer.renderAll(t,e.nodes,r),e.lines.length>0&&tt(r,e.lines);for(let l=e.dots.length-1;l>=0;l--){let a=e.dots[l];a.update(),a.draw(t),a.alive||e.dots.splice(l,1)}if(this._overlay&&this._overlay.isOpen&&this._overlay.highlightKey){let l=this._overlay.highlightKey,a=e.nodes[l];a&&(t.save(),t.globalAlpha=.15,t.fillStyle=a.color||"#58a6ff",t.fillRect(s.tx(a.x)-4,s.ty(a.y)-4,s.ts(a.w)+8,s.ts(a.h)+8),t.restore())}}_setupPlayback(){let t=this._engine,e=t.state;this._playback=new F({state:e,engine:t,stepsPanel:this._stepsPanel?{markActive:s=>this._stepsPanel.updateStep(s,"active"),markDone:s=>this._stepsPanel.updateStep(s,"done"),markPending:s=>this._stepsPanel.updateStep(s,"pending"),scrollTo:s=>this._stepsPanel.scrollToStep(s),initSteps:s=>this._stepsPanel.init(s)}:null,inspector:this._inspector&&this._diagram.inspector?{init:()=>{let s=this._diagram.inspector?.initialState;if(s){let o=n=>({v:n.value||n.v,s:n.style||n.s||"keep",id:n.id});this._inspector.init({headers:(s.headers||[]).map(o),body:(s.body||[]).map(o),cycleState:(s.cycleState||[]).map(o)}),s.phase&&this._inspector.setPhase(s.phase)}},step:s=>{let o=this._diagram.inspector?.mutations?.[this._engine.state.activeFlow];if(o){let n=o.find(r=>r.step===s);if(n){let r=a=>({v:a.value||a.v,s:a.style||a.s||"keep",id:a.id}),l={...n};l.actions&&(l.actions=l.actions.map(a=>({...a,value:a.value,style:a.style}))),l.replaceHeaders&&(l.replaceHeaders=l.replaceHeaders.map(r)),l.replaceBody&&(l.replaceBody=l.replaceBody.map(r)),l.cycleState&&(l.cycleState=l.cycleState.map(r)),l.replaceCycleState&&(l.replaceCycleState=l.replaceCycleState.map(r)),this._inspector.applyMutation(l)}}}}:null,createDot:(s,o,n,r,l,a)=>new $(s,o,n,r,l,a,{tx:h=>t.tx(h),ty:h=>t.ty(h),ts:h=>t.ts(h),nodes:e.nodes}),onFlowComplete:()=>{this._options.playBtn&&(this._options.playBtn.innerHTML="&#9654; Start"),this._updateFlowLabel(),this._options.flowSelect&&(this._options.flowSelect.value=this._engine.state.activeFlow),this._stepsPanel&&this._stepsPanel.init(this._engine.state.flows[this._engine.state.activeFlow])},flowOrder:this._diagram.flowOrder||Object.keys(e.flows)}),this._playback.onChange(s=>{s==="flow"&&(this._updateFlowLabel(),this._options.flowSelect&&(this._options.flowSelect.value=e.activeFlow),this._stepsPanel&&this._stepsPanel.init(e.flows[e.activeFlow])),(s==="play"||s==="resume")&&this._options.playBtn&&(this._options.playBtn.innerHTML="&#9646;&#9646; Pause"),(s==="pause"||s==="reset")&&this._options.playBtn&&(this._options.playBtn.innerHTML="&#9654; Start")})}_setupOverlay(){let t=this._engine,e=t.state,s=this._options,o=s.overlay||s.overlayElement,n=s.overlayCard,r=s.overlayAccent,l=s.overlayTitle,a=s.overlayDesc,h=s.overlayDetails,f=s.highlightBox;!o||!n||(s.overlayClose&&s.overlayClose.addEventListener("click",()=>this.closeOverlay()),s.overlayResume&&s.overlayResume.addEventListener("click",()=>this.closeOverlay()),this._overlay=new C({overlay:o,overlayCard:n,overlayAccent:r,overlayTitle:l,overlayDesc:a,overlayDetails:h,highlightBox:f},{isRunning:()=>e.running,isPaused:()=>e.paused,setRunning:p=>{e.running=p},setPaused:p=>{e.paused=p},clearStepTimer:()=>{e.stepTimer&&(clearTimeout(e.stepTimer),e.stepTimer=null)},resumeAnimation:()=>{this._playback&&this._playback.resume()},requestDraw:()=>t.draw(),isDark:()=>this._theme.isDark,tx:p=>t.tx(p),ty:p=>t.ty(p),ts:p=>t.ts(p)},this._options.panelWidth??380))}_setupCanvasClick(){let t=this._engine,e=t.state;this._canvas.addEventListener("click",s=>{if(!this._overlay||this._overlay.isOpen)return;let o=this._canvas.getBoundingClientRect(),n=s.clientX-o.left,r=s.clientY-o.top,l=(n-t._ox)/t._sc,a=(r-t._oy)/t._sc;for(let[h,f]of Object.entries(e.nodes))if(!(f.type==="boundary"||f.type==="container")&&l>=f.x&&l<=f.x+f.w&&a>=f.y&&a<=f.y+f.h){let p=e.tooltips[h];p&&this._overlay.show(h,f,p);break}})}};return yt(Pt);})();
+
+</script>
+<script>
+(async function() {
+  var FlowStory = FlowStoryBundle.FlowStory;
+  var viz = new FlowStory(document.getElementById("fs-canvas"), {
+    stepsContainer: document.getElementById("fs-steps-container"),
+    inspectorTitle: document.getElementById("fs-inspector-title"),
+    inspectorContent: document.getElementById("fs-inspector-content"),
+    overlay: document.getElementById("fs-overlay"),
+    overlayCard: document.getElementById("fs-overlay-card"),
+    overlayTitle: document.getElementById("fs-overlay-title"),
+    overlayDesc: document.getElementById("fs-overlay-desc"),
+    overlayDetails: document.getElementById("fs-overlay-details"),
+    overlayAccent: document.getElementById("fs-overlay-accent"),
+    overlayClose: document.getElementById("fs-overlay-close"),
+    overlayResume: document.getElementById("fs-overlay-resume"),
+    highlightBox: document.getElementById("fs-highlight-box"),
+    brand: document.getElementById("fs-brand"),
+    title: document.getElementById("fs-title"),
+    legend: document.getElementById("fs-legend"),
+    flowSelect: document.getElementById("fs-flow-select"),
+    playBtn: document.getElementById("fs-play"),
+    speedBtn: document.getElementById("fs-speed"),
+    loopBtn: document.getElementById("fs-loop"),
+    resetBtn: document.getElementById("fs-reset"),
+    themeBtn: document.getElementById("fs-theme"),
+  });
+  window.__flowstory = viz;
+  try {
+    await viz.load({
+  "meta": {
+    "title": "Zero-Trust MCP Access — Flow Visualizer"
+  },
+  "canvas": {
+    "width": 1700,
+    "height": 1187
+  },
+  "nodes": {
+    "sally": {
+      "x": -30,
+      "y": 310,
+      "w": 100,
+      "h": 50,
+      "label": "Sally",
+      "type": "icon"
+    },
+    "keycloak": {
+      "x": 150,
+      "y": 55,
+      "w": 200,
+      "h": 65,
+      "label": "Keycloak",
+      "sublabel": "OIDC / JWKS",
+      "color": "#f0883e",
+      "fontSize": 18
+    },
+    "hermes": {
+      "x": 150,
+      "y": 300,
+      "w": 200,
+      "h": 70,
+      "label": "Hermes Dashboard",
+      "sublabel": "AI Agent (MCP Client)",
+      "color": "#58a6ff",
+      "fontSize": 16
+    },
+    "cluster": {
+      "x": 620,
+      "y": 25,
+      "w": 940,
+      "h": 540,
+      "type": "boundary",
+      "label": "Kubernetes Cluster"
+    },
+    "mcp_pod": {
+      "x": 660,
+      "y": 110,
+      "w": 860,
+      "h": 220,
+      "type": "container",
+      "label": "MCP Pod — Envoy Sidecar Mesh",
+      "color": "#d2a8ff"
+    },
+    "svc": {
+      "x": 690,
+      "y": 185,
+      "w": 170,
+      "h": 55,
+      "label": "K8s Service",
+      "sublabel": ":9090",
+      "color": "#8b949e",
+      "inner": true
+    },
+    "envoy": {
+      "x": 895,
+      "y": 185,
+      "w": 160,
+      "h": 55,
+      "label": "Envoy Proxy",
+      "sublabel": ":15124",
+      "color": "#8b949e",
+      "inner": true
+    },
+    "authbridge": {
+      "x": 1090,
+      "y": 185,
+      "w": 195,
+      "h": 55,
+      "label": "AuthBridge",
+      "sublabel": "JWT Validator",
+      "color": "#f0883e",
+      "inner": true
+    },
+    "mcp": {
+      "x": 1320,
+      "y": 185,
+      "w": 165,
+      "h": 55,
+      "label": "MCP Server",
+      "sublabel": ":8080 · sqlglot AST",
+      "color": "#58a6ff",
+      "inner": true
+    },
+    "spicedb": {
+      "x": 750,
+      "y": 410,
+      "w": 230,
+      "h": 70,
+      "label": "SpiceDB",
+      "sublabel": "CheckPermission",
+      "color": "#d2a8ff",
+      "fontSize": 18
+    },
+    "trino": {
+      "x": 1100,
+      "y": 410,
+      "w": 230,
+      "h": 70,
+      "label": "Trino",
+      "sublabel": "Data Query Engine",
+      "color": "#3fb950",
+      "fontSize": 18
+    },
+    "sec_boundary": {
+      "x": 20,
+      "y": 590,
+      "w": 1650,
+      "h": 567,
+      "type": "boundary",
+      "label": "Security Layers",
+      "labelAlign": "left"
+    },
+    "sec_identity": {
+      "x": 40,
+      "y": 620,
+      "w": 420,
+      "h": 185,
+      "type": "container",
+      "label": "Identity & Authentication",
+      "color": "#f0883e"
+    },
+    "s_keycloak": {
+      "x": 55,
+      "y": 655,
+      "w": 390,
+      "h": 32,
+      "label": "Keycloak OIDC Login",
+      "sublabel": "RS256 JWT issued · steps 1-2",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "s_spiffe": {
+      "x": 55,
+      "y": 691,
+      "w": 390,
+      "h": 32,
+      "label": "SPIFFE / SPIRE",
+      "sublabel": "workload identity · JWT SVID with audience claim",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "s_authbridge": {
+      "x": 55,
+      "y": 727,
+      "w": 390,
+      "h": 32,
+      "label": "AuthBridge JWT Validation",
+      "sublabel": "JWKS signature + audience check · steps 5-6",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "s_obo": {
+      "x": 55,
+      "y": 763,
+      "w": 390,
+      "h": 32,
+      "label": "On-Behalf-Of (JWT aud)",
+      "sublabel": "preferred_username:sally, azp:hermes · steps 7-8",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "sec_authz": {
+      "x": 480,
+      "y": 620,
+      "w": 400,
+      "h": 185,
+      "type": "container",
+      "label": "Authorization",
+      "color": "#d2a8ff"
+    },
+    "s_spicedb": {
+      "x": 495,
+      "y": 655,
+      "w": 370,
+      "h": 32,
+      "label": "SpiceDB CheckPermission",
+      "sublabel": "ReBAC · user:sally → dataset · steps 10-11",
+      "type": "plugin",
+      "inner": true,
+      "color": "#d2a8ff",
+      "fontSize": 12
+    },
+    "s_opa": {
+      "x": 495,
+      "y": 691,
+      "w": 370,
+      "h": 32,
+      "label": "OPA Network Policy",
+      "sublabel": "per-sandbox · own dept MCP only · cross-dept blocked",
+      "type": "plugin",
+      "inner": true,
+      "color": "#d2a8ff",
+      "fontSize": 12
+    },
+    "sec_network": {
+      "x": 1010,
+      "y": 620,
+      "w": 440,
+      "h": 256,
+      "type": "container",
+      "label": "Network Isolation",
+      "color": "#58a6ff"
+    },
+    "s_netns": {
+      "x": 1025,
+      "y": 655,
+      "w": 410,
+      "h": 32,
+      "label": "K8s NetworkPolicy (kernel)",
+      "sublabel": "egress: internal=all, external=TCP 443+80 only",
+      "type": "plugin",
+      "inner": true,
+      "color": "#58a6ff",
+      "fontSize": 12
+    },
+    "s_iptables": {
+      "x": 1025,
+      "y": 691,
+      "w": 410,
+      "h": 32,
+      "label": "iptables proxy-init",
+      "sublabel": "TCP → Envoy · UDP bypasses (NetworkPolicy closes gap)",
+      "type": "plugin",
+      "inner": true,
+      "color": "#58a6ff",
+      "fontSize": 12
+    },
+    "s_k8sroute": {
+      "x": 1025,
+      "y": 727,
+      "w": 410,
+      "h": 32,
+      "label": "K8s Service Routing",
+      "sublabel": "targetPort:15124 → all traffic through Envoy",
+      "type": "plugin",
+      "inner": true,
+      "color": "#58a6ff",
+      "fontSize": 12
+    },
+    "sec_process": {
+      "x": 40,
+      "y": 890,
+      "w": 530,
+      "h": 155,
+      "type": "container",
+      "label": "Process & Filesystem Isolation",
+      "color": "#3fb950"
+    },
+    "s_seccomp": {
+      "x": 55,
+      "y": 925,
+      "w": 500,
+      "h": 32,
+      "label": "Seccomp",
+      "sublabel": "restricts system calls available to sandbox process",
+      "type": "plugin",
+      "inner": true,
+      "color": "#3fb950",
+      "fontSize": 12
+    },
+    "s_landlock": {
+      "x": 55,
+      "y": 961,
+      "w": 500,
+      "h": 32,
+      "label": "Landlock",
+      "sublabel": "filesystem isolation · sandbox cannot access host paths",
+      "type": "plugin",
+      "inner": true,
+      "color": "#3fb950",
+      "fontSize": 12
+    },
+    "s_inherit": {
+      "x": 55,
+      "y": 997,
+      "w": 500,
+      "h": 32,
+      "label": "Subprocess Inheritance",
+      "sublabel": "child processes inherit all restrictions · no exec escape",
+      "type": "plugin",
+      "inner": true,
+      "color": "#3fb950",
+      "fontSize": 12
+    },
+    "sec_cred": {
+      "x": 590,
+      "y": 890,
+      "w": 560,
+      "h": 260,
+      "type": "container",
+      "label": "Credential Protection",
+      "color": "#f85149"
+    },
+    "s_tofu": {
+      "x": 605,
+      "y": 925,
+      "w": 530,
+      "h": 32,
+      "label": "TOFU Hashing",
+      "sublabel": "trust-on-first-use for gateway TLS certificates",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_nosecrets": {
+      "x": 605,
+      "y": 961,
+      "w": 530,
+      "h": 32,
+      "label": "No Static Secrets",
+      "sublabel": "SPIFFE SVID replaces pre-shared keys · auto-registered client",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_shortlived": {
+      "x": 605,
+      "y": 997,
+      "w": 530,
+      "h": 32,
+      "label": "Short-Lived Tokens",
+      "sublabel": "JWT 5-min TTL · SVID auto-rotated by spiffe-helper",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_accesstok": {
+      "x": 605,
+      "y": 1033,
+      "w": 530,
+      "h": 32,
+      "label": "Access Token (not ID token)",
+      "sublabel": "real OAuth access token forwarded · correct audience for validation",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "sandbox": {
+      "x": 120,
+      "y": 260,
+      "w": 260,
+      "h": 200,
+      "type": "container",
+      "label": "Agent Sandbox (OpenShell)",
+      "color": "#3fb950"
+    },
+    "opa_proxy": {
+      "x": 400,
+      "y": 285,
+      "w": 190,
+      "h": 65,
+      "label": "OPA Proxy",
+      "sublabel": "Per-Sandbox · 10.200.0.1:3128",
+      "color": "#58a6ff",
+      "fontSize": 16
+    },
+    "s_opaproxy": {
+      "x": 1025,
+      "y": 763,
+      "w": 410,
+      "h": 32,
+      "label": "OPA HTTP Proxy (L7)",
+      "sublabel": "all sandbox egress proxied · policy-denied for unauthorized",
+      "type": "plugin",
+      "inner": true,
+      "color": "#58a6ff",
+      "fontSize": 12
+    },
+    "auth_proxy": {
+      "x": 150,
+      "y": 385,
+      "w": 200,
+      "h": 55,
+      "label": "Auth Proxy",
+      "sublabel": "localhost:8889 · injects JWT",
+      "color": "#f0883e",
+      "fontSize": 14,
+      "inner": true
+    },
+    "s_authproxy": {
+      "x": 605,
+      "y": 1069,
+      "w": 530,
+      "h": 32,
+      "label": "Dashboard Auth Proxy",
+      "sublabel": "token in memory only · agent makes plain HTTP · proxy injects JWT",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_dumpable": {
+      "x": 605,
+      "y": 1105,
+      "w": 530,
+      "h": 32,
+      "label": "PR_SET_DUMPABLE=0",
+      "sublabel": "/proc/PID/mem + /environ + ptrace blocked for siblings",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_sqlglot": {
+      "x": 495,
+      "y": 727,
+      "w": 370,
+      "h": 32,
+      "label": "sqlglot AST Validation",
+      "sublabel": "Trino dialect · table nodes checked · fail-closed",
+      "type": "plugin",
+      "inner": true,
+      "color": "#d2a8ff",
+      "fontSize": 12
+    },
+    "s_sandbox_policy": {
+      "x": 1025,
+      "y": 799,
+      "w": 410,
+      "h": 32,
+      "label": "Hermes Sandbox Policy",
+      "sublabel": "per-binary: node→NPM, python→MCP+Trino+MaaS+PyPI",
+      "type": "plugin",
+      "inner": true,
+      "color": "#58a6ff",
+      "fontSize": 12
+    }
+  },
+  "tooltips": {
+    "sally": {
+      "title": "Sally (End User)",
+      "description": "An authenticated user who accesses data through the Hermes AI dashboard. Sally's identity is established via Keycloak OIDC login and carried as an RS256-signed JWT through the entire zero-trust chain.",
+      "details": [
+        [
+          "sub",
+          "53373b46-59b1-4376-a3b4-534c70053c13"
+        ],
+        [
+          "preferred_username",
+          "sally"
+        ],
+        [
+          "email",
+          "sally@redhat.com"
+        ],
+        [
+          "name",
+          "sally sales"
+        ],
+        [
+          "scope",
+          "profile email"
+        ],
+        [
+          "realm_access",
+          "offline_access, uma_authorization"
+        ]
+      ]
+    },
+    "keycloak": {
+      "title": "Keycloak (Identity Provider)",
+      "description": "OpenID Connect identity provider. Issues RS256-signed JWTs with a 5-minute TTL after user authentication. Publishes JWKS endpoint for downstream signature verification. Token audience is bound to the MCP service's SPIFFE identity.",
+      "details": [
+        [
+          "Protocol",
+          "OIDC / OAuth 2.0"
+        ],
+        [
+          "JWT Algorithm",
+          "RS256 (kid: UWDn_5Ogw...)"
+        ],
+        [
+          "Issuer (iss)",
+          "https://keycloak-.../realms/prelude-..."
+        ],
+        [
+          "Audience (aud)",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Token TTL",
+          "5 minutes (exp - iat)"
+        ],
+        [
+          "Key Claims",
+          "sub, preferred_username, email, azp, aud"
+        ]
+      ],
+      "links": [
+        [
+          "Keycloak Docs",
+          "https://www.keycloak.org/documentation"
+        ]
+      ]
+    },
+    "hermes": {
+      "title": "Hermes Dashboard",
+      "description": "AI agent dashboard that holds Sally's JWT after OIDC login. When the agent calls MCP tools, Hermes includes the access token in the Authorization header. Registered in Keycloak as the authorized party (azp).",
+      "details": [
+        [
+          "Role",
+          "MCP Client"
+        ],
+        [
+          "azp (Authorized Party)",
+          "hermes-dashboard"
+        ],
+        [
+          "Auth Header",
+          "Authorization: Bearer <JWT>"
+        ],
+        [
+          "Token Audience",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Token Type",
+          "Bearer"
+        ]
+      ]
+    },
+    "svc": {
+      "title": "Kubernetes Service",
+      "description": "Cluster-internal Service object exposing the MCP pod on port 9090. All traffic enters the pod through this service, which routes to the Envoy sidecar.",
+      "details": [
+        [
+          "Port",
+          "9090"
+        ],
+        [
+          "Type",
+          "ClusterIP"
+        ],
+        [
+          "Routes To",
+          "Envoy sidecar (:15124)"
+        ]
+      ]
+    },
+    "envoy": {
+      "title": "Envoy Proxy (Istio Sidecar)",
+      "description": "Istio-injected Envoy sidecar that intercepts all inbound traffic. Configured with ext_authz filter pointing to AuthBridge for JWT validation before forwarding to the MCP application.",
+      "details": [
+        [
+          "Port",
+          "15124 (inbound listener)"
+        ],
+        [
+          "Filter",
+          "ext_authz → AuthBridge"
+        ],
+        [
+          "On Success",
+          "Forward to MCP :8080"
+        ],
+        [
+          "On Failure",
+          "Return 401 Unauthorized"
+        ],
+        [
+          "mTLS",
+          "Istio SPIFFE-based mutual TLS"
+        ]
+      ]
+    },
+    "authbridge": {
+      "title": "AuthBridge (JWT Validator)",
+      "description": "Sidecar service invoked by Envoy's ext_authz filter. Validates incoming RS256-signed JWTs by fetching the signing key (kid: UWDn_5Ogw...) from the Keycloak JWKS endpoint, verifying the SPIFFE audience claim, and extracting identity for downstream services.",
+      "details": [
+        [
+          "Signature",
+          "RS256 verified via Keycloak JWKS (kid lookup)"
+        ],
+        [
+          "Issuer Check",
+          "iss must match Keycloak realm URL"
+        ],
+        [
+          "Audience Check",
+          "aud must include spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Expiry Check",
+          "exp validated (5 min TTL)"
+        ],
+        [
+          "Identity Extracted",
+          "sub, preferred_username, email, azp"
+        ],
+        [
+          "On Valid",
+          "Injects x-auth-subject, x-auth-username headers"
+        ],
+        [
+          "On Invalid",
+          "Returns 401 + WWW-Authenticate: Bearer"
+        ]
+      ]
+    },
+    "mcp": {
+      "title": "MCP Server",
+      "description": "Model Context Protocol server running the actual tool implementations. Reads the validated identity from headers injected by AuthBridge, then checks fine-grained permissions via SpiceDB before executing queries.",
+      "details": [
+        [
+          "Port",
+          "8080"
+        ],
+        [
+          "Protocol",
+          "JSON-RPC 2.0 (MCP)"
+        ],
+        [
+          "Identity Source",
+          "x-auth-username header (from AuthBridge)"
+        ],
+        [
+          "SQL Validation",
+          "sqlglot AST parsing (Trino dialect)"
+        ],
+        [
+          "Authorization",
+          "SpiceDB CheckPermission per request"
+        ],
+        [
+          "Data Backend",
+          "Trino"
+        ]
+      ]
+    },
+    "spicedb": {
+      "title": "SpiceDB (Authorization)",
+      "description": "Google Zanzibar-inspired authorization system. The MCP server calls CheckPermission to verify whether the authenticated user has access to the requested resource (dataset, catalog, etc.).",
+      "details": [
+        [
+          "API",
+          "CheckPermission(resource, permission, subject)"
+        ],
+        [
+          "Example Allow",
+          "CheckPermission(dataset:orders, view, user:sally) → ALLOWED"
+        ],
+        [
+          "Example Deny",
+          "CheckPermission(catalog:finance, view, user:sally) → DENIED"
+        ],
+        [
+          "Model",
+          "Relationship-based access control (ReBAC)"
+        ]
+      ],
+      "links": [
+        [
+          "SpiceDB Docs",
+          "https://authzed.com/docs"
+        ]
+      ]
+    },
+    "trino": {
+      "title": "Trino (Data Query Engine)",
+      "description": "Distributed SQL query engine. The MCP server executes Trino queries only after SpiceDB confirms the user has permission to access the requested dataset.",
+      "details": [
+        [
+          "Engine",
+          "Trino (formerly PrestoSQL)"
+        ],
+        [
+          "Access",
+          "Only after SpiceDB authorization"
+        ],
+        [
+          "Context",
+          "Query scoped to authenticated user"
+        ]
+      ],
+      "links": [
+        [
+          "Trino Docs",
+          "https://trino.io/docs/current/"
+        ]
+      ]
+    },
+    "sec_identity": {
+      "title": "Identity & Authentication",
+      "description": "Controls that establish and verify who is making the request. Defends against gateway bypass and unauthorized access.",
+      "details": [
+        [
+          "Threat",
+          "Gateway bypass, identity spoofing"
+        ],
+        [
+          "Controls",
+          "Keycloak OIDC, SPIFFE/SPIRE, AuthBridge JWT, On-Behalf-Of"
+        ],
+        [
+          "Fail Mode",
+          "No JWT = 401 (fail-closed)"
+        ]
+      ]
+    },
+    "s_keycloak": {
+      "title": "Keycloak OIDC Login",
+      "description": "User authenticates via OpenID Connect and receives an RS256-signed JWT. The token carries the user's identity (preferred_username, sub, email) and is bound to the MCP service's SPIFFE audience.",
+      "details": [
+        [
+          "Flow Steps",
+          "1-2"
+        ],
+        [
+          "Algorithm",
+          "RS256"
+        ],
+        [
+          "Token TTL",
+          "5 minutes"
+        ],
+        [
+          "Key Claims",
+          "sub, preferred_username, email, aud, azp"
+        ]
+      ]
+    },
+    "s_spiffe": {
+      "title": "SPIFFE / SPIRE Workload Identity",
+      "description": "Provides cryptographic workload identity for the MCP pod. The JWT audience claim (spiffe://retail-demo/ns/openshell/sa/default) is the pod's SPIFFE ID, ensuring tokens can only be accepted by the intended service.",
+      "details": [
+        [
+          "SPIFFE ID",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "JWT SVID",
+          "Workload identity certificate, auto-rotated"
+        ],
+        [
+          "Purpose",
+          "Binds JWT audience to workload identity"
+        ],
+        [
+          "Defends",
+          "Token replay to wrong service"
+        ]
+      ]
+    },
+    "s_authbridge": {
+      "title": "AuthBridge JWT Validation",
+      "description": "Verifies every incoming JWT signature by fetching the signing key (kid: UWDn_5Ogw...) from Keycloak's JWKS endpoint. Checks that the audience claim matches the pod's SPIFFE identity. Runs on every request — fail-closed.",
+      "details": [
+        [
+          "Flow Steps",
+          "5-6"
+        ],
+        [
+          "Checks",
+          "RS256 signature, audience, issuer, expiry"
+        ],
+        [
+          "JWKS Source",
+          "Keycloak /.well-known/jwks.json"
+        ],
+        [
+          "Defends",
+          "Gateway bypass — no JWT = 401"
+        ]
+      ]
+    },
+    "s_obo": {
+      "title": "On-Behalf-Of (JWT Audience)",
+      "description": "The access token carries Sally's identity end-to-end. The preferred_username claim identifies the user for SpiceDB checks, azp identifies the requesting client, and the SPIFFE audience ensures the token is only valid for this service.",
+      "details": [
+        [
+          "Flow Steps",
+          "7-8"
+        ],
+        [
+          "preferred_username",
+          "sally"
+        ],
+        [
+          "azp",
+          "hermes-dashboard"
+        ],
+        [
+          "aud",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Defends",
+          "Identity confusion, token misuse"
+        ]
+      ]
+    },
+    "sec_authz": {
+      "title": "Authorization",
+      "description": "Controls that determine what an authenticated user can do. Fine-grained permission checks and sandbox endpoint restrictions.",
+      "details": [
+        [
+          "Threat",
+          "Privilege escalation, authorization bypass, direct data access"
+        ],
+        [
+          "Controls",
+          "SpiceDB ReBAC, OPA network policy"
+        ]
+      ]
+    },
+    "s_spicedb": {
+      "title": "SpiceDB CheckPermission",
+      "description": "Relationship-based access control (ReBAC) inspired by Google Zanzibar. Every MCP tool call triggers a CheckPermission call: can user:sally view dataset:orders? Permission decisions are based on stored relationships, not roles.",
+      "details": [
+        [
+          "Flow Steps",
+          "10-11"
+        ],
+        [
+          "API",
+          "CheckPermission(resource, permission, subject)"
+        ],
+        [
+          "Model",
+          "ReBAC — relationships, not roles"
+        ],
+        [
+          "Defends",
+          "Unauthorized data access, privilege escalation"
+        ]
+      ]
+    },
+    "s_opa": {
+      "title": "OPA Network Policy (Per-Sandbox)",
+      "description": "Per-sandbox network policy restricts each sandbox to its own department's MCP server. Finance can only reach retail-finance-mcp, sales only retail-sales-mcp. Cross-department MCP traffic is blocked at L7, eliminating cross-department token theft entirely.",
+      "details": [
+        [
+          "Scope",
+          "Per-sandbox isolation"
+        ],
+        [
+          "Finance",
+          "→ retail-finance-mcp ONLY"
+        ],
+        [
+          "Sales",
+          "→ retail-sales-mcp ONLY"
+        ],
+        [
+          "Cross-dept",
+          "403 policy_denied"
+        ],
+        [
+          "Defends",
+          "Cross-department token theft, lateral movement"
+        ]
+      ]
+    },
+    "sec_network": {
+      "title": "Network Isolation (Two Layers)",
+      "description": "Defense-in-depth network isolation with two complementary layers: K8s NetworkPolicy (kernel-level, namespace-wide) blocks unauthorized external egress including UDP. Hermes Sandbox Policy (process-level) adds per-binary allowlists inside the sandbox. The key insight: iptables only redirects TCP, so the NetworkPolicy is what closes the UDP exfiltration gap.",
+      "details": [
+        [
+          "Threat",
+          "Network exfiltration, UDP tunneling, gateway bypass"
+        ],
+        [
+          "Layer 1",
+          "K8s NetworkPolicy — kernel-level, blocks external UDP/non-standard TCP"
+        ],
+        [
+          "Layer 2",
+          "Hermes Sandbox Policy — process-level per-binary allowlist"
+        ],
+        [
+          "Gap Closed",
+          "iptables only redirects TCP → NetworkPolicy blocks external UDP"
+        ]
+      ]
+    },
+    "s_netns": {
+      "title": "K8s NetworkPolicy (Kernel-Level Egress)",
+      "description": "Namespace-wide NetworkPolicy enforced at the kernel level by the CNI plugin. Allows all protocols to cluster-internal pods (CoreDNS, MCP, Trino, SpiceDB, K8s API) but restricts external egress to TCP 443 and 80 only. This closes the UDP exfiltration gap — since Envoy/iptables only redirect TCP, UDP to external would bypass the proxy entirely. The NetworkPolicy blocks it at the kernel.",
+      "details": [
+        [
+          "Scope",
+          "All pods in namespace (kernel-level)"
+        ],
+        [
+          "Internal",
+          "All protocols → any pod/namespace (CoreDNS UDP 53, MCP TCP 9090, Trino TCP 8080, SpiceDB TCP 50051, K8s API)"
+        ],
+        [
+          "External",
+          "TCP 443 + TCP 80 ONLY (MaaS, Keycloak, PyPI, NPM, registries)"
+        ],
+        [
+          "Blocked",
+          "UDP to external, non-standard TCP, ICMP"
+        ],
+        [
+          "Key Insight",
+          "iptables proxy-init only redirects TCP — NetworkPolicy closes the UDP gap"
+        ],
+        [
+          "Defends",
+          "UDP exfiltration (e.g. DNS tunneling to 8.8.8.8:53)"
+        ]
+      ]
+    },
+    "s_iptables": {
+      "title": "iptables proxy-init",
+      "description": "The proxy-init container configures iptables rules to redirect all inbound TCP traffic through the Envoy sidecar proxy. Port 443 is excluded for JWKS. IMPORTANT: iptables only redirects TCP — UDP traffic bypasses the proxy entirely. The K8s NetworkPolicy is the layer that blocks UDP exfiltration to external.",
+      "details": [
+        [
+          "Redirect",
+          "All inbound TCP → Envoy :15124"
+        ],
+        [
+          "Excluded",
+          "Port 443 (JWKS/TLS validation)"
+        ],
+        [
+          "Limitation",
+          "UDP is NOT redirected through Envoy"
+        ],
+        [
+          "Gap Closed By",
+          "K8s NetworkPolicy (blocks external UDP)"
+        ],
+        [
+          "Defends",
+          "Gateway bypass — TCP traffic cannot skip Envoy"
+        ]
+      ]
+    },
+    "s_k8sroute": {
+      "title": "K8s Service Routing",
+      "description": "The Kubernetes Service targetPort is set to 15124 (Envoy), not 8080 (MCP app). This ensures all traffic entering the pod goes through the Envoy sidecar and AuthBridge validation — there is no path to reach MCP directly.",
+      "details": [
+        [
+          "Service Port",
+          "9090"
+        ],
+        [
+          "Target Port",
+          "15124 (Envoy sidecar)"
+        ],
+        [
+          "Not Exposed",
+          "8080 (MCP app) — internal only"
+        ],
+        [
+          "Defends",
+          "Gateway bypass — Service → Envoy is mandatory"
+        ]
+      ]
+    },
+    "sec_process": {
+      "title": "Process & Filesystem Isolation",
+      "description": "Linux kernel security controls that restrict what the sandbox process can do at the OS level. Prevents filesystem escape and restricts system calls.",
+      "details": [
+        [
+          "Threat",
+          "Filesystem escape, container breakout, privilege escalation"
+        ],
+        [
+          "Controls",
+          "Seccomp, Landlock, subprocess inheritance"
+        ]
+      ]
+    },
+    "s_seccomp": {
+      "title": "Seccomp",
+      "description": "Restricts the system calls available to the sandbox process. Blocks dangerous syscalls that could be used for container escape or privilege escalation.",
+      "details": [
+        [
+          "Scope",
+          "Sandbox process and all children"
+        ],
+        [
+          "Inherited",
+          "Child processes inherit seccomp filters"
+        ],
+        [
+          "Defends",
+          "Container breakout, privilege escalation"
+        ]
+      ]
+    },
+    "s_landlock": {
+      "title": "Landlock",
+      "description": "Linux Security Module that provides filesystem isolation. The sandbox process cannot access host paths outside its designated working directory, preventing data exfiltration via the filesystem.",
+      "details": [
+        [
+          "Scope",
+          "Filesystem access restricted to sandbox dir"
+        ],
+        [
+          "Blocked",
+          "Host paths, sensitive files, /proc, /sys"
+        ],
+        [
+          "Inherited",
+          "Child processes inherit Landlock rules"
+        ],
+        [
+          "Defends",
+          "Filesystem escape, credential theft"
+        ]
+      ]
+    },
+    "s_inherit": {
+      "title": "Subprocess Inheritance",
+      "description": "All security restrictions (seccomp, Landlock, netns) are automatically inherited by child processes. An agent cannot escape the sandbox by spawning a subprocess via exec — the child inherits the parent's restrictions.",
+      "details": [
+        [
+          "Inherited",
+          "seccomp + Landlock + netns"
+        ],
+        [
+          "No Escape",
+          "exec/fork children get same restrictions"
+        ],
+        [
+          "Defends",
+          "Sandbox escape via subprocess spawning"
+        ]
+      ]
+    },
+    "sec_cred": {
+      "title": "Credential Protection",
+      "description": "Controls that minimize credential exposure. No static secrets, short-lived auto-rotating tokens, and trust-on-first-use for TLS.",
+      "details": [
+        [
+          "Threat",
+          "Credential leaks, token replay, key compromise"
+        ],
+        [
+          "Controls",
+          "TOFU, no static secrets, short-lived tokens, access token forwarding"
+        ]
+      ]
+    },
+    "s_tofu": {
+      "title": "TOFU Hashing",
+      "description": "Trust-On-First-Use for gateway TLS certificates. On first connection, the certificate fingerprint is pinned. Subsequent connections reject any certificate that doesn't match, defending against MITM attacks.",
+      "details": [
+        [
+          "Model",
+          "Trust-On-First-Use (like SSH known_hosts)"
+        ],
+        [
+          "Pinned",
+          "TLS certificate fingerprint"
+        ],
+        [
+          "Defends",
+          "MITM attacks, certificate substitution"
+        ]
+      ]
+    },
+    "s_nosecrets": {
+      "title": "No Static Secrets",
+      "description": "SPIFFE SVIDs replace pre-shared keys and static credentials. The Keycloak client is auto-registered. No secrets are baked into images, config maps, or environment variables.",
+      "details": [
+        [
+          "Replaced",
+          "Pre-shared keys, static API keys"
+        ],
+        [
+          "By",
+          "SPIFFE SVID (auto-rotated)"
+        ],
+        [
+          "Client Registration",
+          "Auto-registered in Keycloak"
+        ],
+        [
+          "Defends",
+          "Credential leaks from config/images"
+        ]
+      ]
+    },
+    "s_shortlived": {
+      "title": "Short-Lived Tokens",
+      "description": "JWTs have a 5-minute TTL, limiting the window for token replay. SPIFFE SVIDs are auto-rotated by spiffe-helper. Short-lived credentials reduce the blast radius of any credential compromise.",
+      "details": [
+        [
+          "JWT TTL",
+          "5 minutes"
+        ],
+        [
+          "SVID Rotation",
+          "Automatic via spiffe-helper"
+        ],
+        [
+          "Defends",
+          "Token replay, stale credential abuse"
+        ]
+      ]
+    },
+    "s_accesstok": {
+      "title": "Access Token (not ID token)",
+      "description": "Hermes forwards the real OAuth access token, not the ID token. The access token has the correct audience for AuthBridge validation (spiffe://retail-demo/...) and is designed for service-to-service authorization.",
+      "details": [
+        [
+          "Token Type",
+          "OAuth access token (not ID token)"
+        ],
+        [
+          "Audience",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Why Not ID Token",
+          "ID token audience is the client, not the service"
+        ],
+        [
+          "Defends",
+          "Audience confusion, incorrect token forwarding"
+        ]
+      ]
+    },
+    "sandbox": {
+      "title": "Agent Sandbox (OpenShell)",
+      "description": "Isolated execution environment for the AI agent. OpenShell enforces defense-in-depth: network namespace isolation, seccomp syscall filtering, Landlock filesystem restrictions, and subprocess inheritance — ensuring the agent cannot escape the sandbox even with arbitrary code execution.",
+      "details": [
+        [
+          "Network",
+          "Isolated netns, OPA policy restricts endpoints"
+        ],
+        [
+          "Filesystem",
+          "Landlock — no host path access"
+        ],
+        [
+          "Syscalls",
+          "Seccomp — restricted system calls"
+        ],
+        [
+          "Children",
+          "All restrictions inherited by subprocesses"
+        ],
+        [
+          "Credentials",
+          "JWT forwarded, no static secrets"
+        ]
+      ]
+    },
+    "opa_proxy": {
+      "title": "OPA Proxy (L7 Policy Enforcement)",
+      "description": "Per-sandbox HTTP/HTTPS forward proxy enforcing department-scoped network policy at L7. Each sandbox can only reach its own department's MCP server. Cross-department MCP traffic is blocked with policy_denied, eliminating cross-department token theft entirely.",
+      "details": [
+        [
+          "Address",
+          "10.200.0.1:3128"
+        ],
+        [
+          "Policy",
+          "Per-sandbox (policy-retail.yaml)"
+        ],
+        [
+          "Finance sandbox",
+          "→ retail-finance-mcp.openshell.svc:9090 ONLY"
+        ],
+        [
+          "Sales sandbox",
+          "→ retail-sales-mcp.openshell.svc:9090 ONLY"
+        ],
+        [
+          "Ops sandbox",
+          "→ retail-ops-mcp.openshell.svc:9090 ONLY"
+        ],
+        [
+          "Cross-department",
+          "BLOCKED — 403 policy_denied"
+        ],
+        [
+          "ALLOW",
+          "Keycloak :443, MaaS :443, npm/pypi"
+        ],
+        [
+          "DENY",
+          "Trino, SpiceDB, everything else"
+        ]
+      ]
+    },
+    "s_opaproxy": {
+      "title": "OPA HTTP Proxy (L7)",
+      "description": "Layer 7 HTTP proxy that filters all sandbox egress at the application level. Works WITH the network namespace (netns isolates at L3/L4, OPA proxy filters at L7). Even if the agent installs trino-python-driver, the proxy blocks the TCP connection to Trino.",
+      "details": [
+        [
+          "Layer",
+          "L7 (HTTP/HTTPS)"
+        ],
+        [
+          "Enforcement",
+          "HTTP_PROXY/HTTPS_PROXY env vars"
+        ],
+        [
+          "Complements",
+          "netns (L3/L4) + OPA proxy (L7)"
+        ],
+        [
+          "Defends",
+          "Network exfiltration, authorization bypass via direct DB access"
+        ]
+      ]
+    },
+    "auth_proxy": {
+      "title": "Dashboard Auth Proxy (localhost:8889)",
+      "description": "HTTP proxy running inside the dashboard process. The OIDC access token from Keycloak is held in the dashboard process's memory only — never written to disk. The agent makes plain HTTP requests to :8889, which injects the Authorization: Bearer header before forwarding. Inspired by the Kagenti AuthBridge pattern: agents never see tokens.",
+      "details": [
+        [
+          "Address",
+          "localhost:8889"
+        ],
+        [
+          "Token Storage",
+          "Dashboard process memory only"
+        ],
+        [
+          "PR_SET_DUMPABLE",
+          "0 — blocks /proc/PID/mem, /environ, /maps"
+        ],
+        [
+          "ptrace",
+          "Blocked for sibling processes"
+        ],
+        [
+          "Agent Access",
+          "Zero — plain HTTP in, authed HTTP out"
+        ],
+        [
+          "Pattern",
+          "Kagenti AuthBridge: agents never see tokens"
+        ]
+      ]
+    },
+    "s_authproxy": {
+      "title": "Dashboard Auth Proxy",
+      "description": "The OIDC access token lives only in the dashboard process memory. The agent process makes plain HTTP requests to localhost:8889. The auth proxy injects the Authorization: Bearer header before forwarding. The agent never sees, stores, or transmits the token.",
+      "details": [
+        [
+          "Token Location",
+          "Dashboard process memory only"
+        ],
+        [
+          "Agent Sees",
+          "Plain HTTP (no auth headers)"
+        ],
+        [
+          "Proxy Adds",
+          "Authorization: Bearer <token>"
+        ],
+        [
+          "Disk",
+          "Token never written to disk"
+        ],
+        [
+          "Pattern",
+          "Kagenti AuthBridge"
+        ]
+      ]
+    },
+    "s_dumpable": {
+      "title": "PR_SET_DUMPABLE=0",
+      "description": "Linux prctl(PR_SET_DUMPABLE, 0) on the dashboard process prevents any sibling process from reading /proc/PID/mem, /proc/PID/environ, or /proc/PID/maps. Combined with ptrace_scope restrictions, the agent process has zero access to the token in the dashboard's memory.",
+      "details": [
+        [
+          "Blocks",
+          "/proc/PID/mem, /proc/PID/environ, /proc/PID/maps"
+        ],
+        [
+          "ptrace",
+          "Blocked for sibling processes"
+        ],
+        [
+          "Scope",
+          "Dashboard process (token holder)"
+        ],
+        [
+          "Defends",
+          "Token extraction via /proc or ptrace"
+        ]
+      ]
+    },
+    "s_sqlglot": {
+      "title": "sqlglot AST Validation",
+      "description": "Every SQL query is parsed using sqlglot (Trino dialect) into an AST. Every Table node is validated against the allowed catalog and schema via SpiceDB. Queries referencing information_schema, system tables, or unauthorized schemas are rejected. Parse errors fail closed (deny).",
+      "details": [
+        [
+          "Parser",
+          "sqlglot (Trino dialect)"
+        ],
+        [
+          "Validates",
+          "Every Table node in the AST"
+        ],
+        [
+          "Rejects",
+          "information_schema, system tables, other schemas"
+        ],
+        [
+          "Parse Error",
+          "Fail closed (deny)"
+        ],
+        [
+          "Defends",
+          "SQL injection, schema enumeration"
+        ]
+      ]
+    },
+    "s_sandbox_policy": {
+      "title": "Hermes Sandbox Policy (Process-Level)",
+      "description": "Process-level network policy enforced inside the sandbox pod only. Per-binary allowlist: node can reach the dashboard and NPM, python can reach MCP, Trino, SpiceDB, MaaS, and PyPI. Finer-grained than the K8s NetworkPolicy but only enforced inside the sandbox runtime.",
+      "details": [
+        [
+          "Scope",
+          "Inside sandbox pod only (process-level)"
+        ],
+        [
+          "node binary",
+          "→ dashboard, NPM"
+        ],
+        [
+          "python binary",
+          "→ MCP, Trino, SpiceDB, MaaS, PyPI"
+        ],
+        [
+          "Granularity",
+          "Per-binary allowlist"
+        ],
+        [
+          "Relation",
+          "Finer than K8s NetworkPolicy, complementary layer"
+        ],
+        [
+          "Defends",
+          "Process-level lateral movement within the pod"
+        ]
+      ]
+    }
+  },
+  "flows": {
+    "happy": {
+      "label": "Authorized Query (Happy Path)",
+      "steps": [
+        {
+          "text": "1. Sally authenticates with Keycloak",
+          "mode": "arrow",
+          "from": "sally",
+          "to": "keycloak",
+          "color": "#f0883e",
+          "num": 1
+        },
+        {
+          "text": "2. Keycloak issues RS256 JWT (held in dashboard memory only) (aud: spiffe://retail-demo/...)",
+          "mode": "arrow",
+          "from": "keycloak",
+          "to": "hermes",
+          "color": "#f0883e",
+          "num": 2,
+          "fromBottom": true,
+          "toTop": true,
+          "glow": "sec_cred"
+        },
+        {
+          "text": "⬡ Credential: RS256 JWT with 5-min TTL issued",
+          "mode": "lightup",
+          "target": "s_keycloak",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: Short-lived JWT — 5-min TTL limits exposure",
+          "mode": "lightup",
+          "target": "s_shortlived",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: Access token (not ID token) forwarded",
+          "mode": "lightup",
+          "target": "s_accesstok",
+          "badge": "✓"
+        },
+        {
+          "text": "3. Agent sends plain HTTP to Auth Proxy (:8889)",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "auth_proxy",
+          "color": "#f0883e",
+          "num": 3,
+          "fromBottom": true,
+          "toTop": true
+        },
+        {
+          "text": "⬡ Credential: Auth Proxy injects JWT — agent never sees token",
+          "mode": "lightup",
+          "target": "s_authproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: PR_SET_DUMPABLE=0 — /proc blocked for siblings",
+          "mode": "lightup",
+          "target": "s_dumpable",
+          "badge": "✓"
+        },
+        {
+          "text": "3b. Auth Proxy forwards with Authorization: Bearer header",
+          "mode": "arrow",
+          "from": "auth_proxy",
+          "to": "opa_proxy",
+          "color": "#f0883e",
+          "num": 3,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sandbox"
+        },
+        {
+          "text": "⬡ Network: OPA Proxy — policy allows MCP endpoint",
+          "mode": "lightup",
+          "target": "s_opaproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Hermes sandbox policy — per-binary allowlist",
+          "mode": "lightup",
+          "target": "s_sandbox_policy",
+          "badge": "✓"
+        },
+        {
+          "text": "3b. OPA Proxy forwards to cluster (policy: ALLOW)",
+          "mode": "arrow",
+          "from": "opa_proxy",
+          "to": "svc",
+          "color": "#58a6ff",
+          "num": 3,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_network"
+        },
+        {
+          "text": "⬡ Network: Service:9090 → Envoy:15124 routing enforced",
+          "mode": "lightup",
+          "target": "s_k8sroute",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: TOFU — gateway TLS certificate pinned",
+          "mode": "lightup",
+          "target": "s_tofu",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Sandbox in isolated network namespace",
+          "mode": "lightup",
+          "target": "s_netns",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Landlock filesystem isolation active",
+          "mode": "lightup",
+          "target": "s_landlock",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Subprocess restrictions inherited by children",
+          "mode": "lightup",
+          "target": "s_inherit",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Authorization: OPA network policy — sandbox → MCP only",
+          "mode": "lightup",
+          "target": "s_opa",
+          "badge": "✓"
+        },
+        {
+          "text": "4. K8s Service routes to Envoy sidecar",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "envoy",
+          "color": "#58a6ff",
+          "num": 4,
+          "fromRight": true,
+          "toLeft": true
+        },
+        {
+          "text": "⬡ Network: iptables redirects all traffic through Envoy",
+          "mode": "lightup",
+          "target": "s_iptables",
+          "badge": "✓"
+        },
+        {
+          "text": "5. Envoy → AuthBridge (ext_authz check)",
+          "mode": "arrow",
+          "from": "envoy",
+          "to": "authbridge",
+          "color": "#f0883e",
+          "num": 5,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_identity"
+        },
+        {
+          "text": "⬡ Identity: AuthBridge JWKS signature + audience check",
+          "mode": "lightup",
+          "target": "s_authbridge",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: No static secrets — SPIFFE SVID replaces keys",
+          "mode": "lightup",
+          "target": "s_nosecrets",
+          "badge": "✓"
+        },
+        {
+          "text": "6. AuthBridge: RS256 verify via JWKS (kid: UWDn_5Ogw...)",
+          "mode": "arrow",
+          "from": "authbridge",
+          "to": "keycloak",
+          "color": "#f0883e",
+          "num": 6,
+          "fromTop": true,
+          "toRight": true,
+          "waypoints": [
+            {
+              "x": 1187,
+              "y": 75
+            }
+          ]
+        },
+        {
+          "text": "⬡ Identity: SPIFFE audience matches workload identity",
+          "mode": "lightup",
+          "target": "s_spiffe",
+          "badge": "✓"
+        },
+        {
+          "text": "7. JWT valid: sub=53373b46..., azp=hermes-dashboard, aud=spiffe://...",
+          "mode": "lightup",
+          "target": "authbridge",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: On-Behalf-Of — preferred_username:sally forwarded",
+          "mode": "lightup",
+          "target": "s_obo",
+          "badge": "✓"
+        },
+        {
+          "text": "8. Identity injected: x-auth-username: sally, x-auth-email: sally@redhat.com",
+          "mode": "arrow",
+          "from": "authbridge",
+          "to": "mcp",
+          "color": "#58a6ff",
+          "num": 8,
+          "fromRight": true,
+          "toLeft": true
+        },
+        {
+          "text": "9. MCP reads preferred_username: sally from validated headers",
+          "mode": "lightup",
+          "target": "mcp",
+          "badge": 9
+        },
+        {
+          "text": "⬡ Authorization: sqlglot AST — SQL tables validated against SpiceDB",
+          "mode": "lightup",
+          "target": "s_sqlglot",
+          "badge": "✓"
+        },
+        {
+          "text": "10. SpiceDB: CheckPermission(user:sally, dataset:orders)",
+          "mode": "arrow",
+          "from": "mcp",
+          "to": "spicedb",
+          "color": "#d2a8ff",
+          "num": 10,
+          "fromBottom": true,
+          "toTop": true,
+          "glow": "sec_authz"
+        },
+        {
+          "text": "⬡ Authorization: SpiceDB ReBAC permission check",
+          "mode": "lightup",
+          "target": "s_spicedb",
+          "badge": "✓"
+        },
+        {
+          "text": "11. Permission: ALLOWED",
+          "mode": "lightup",
+          "target": "spicedb",
+          "badge": "✓"
+        },
+        {
+          "text": "12. MCP executes Trino query",
+          "mode": "arrow",
+          "from": "mcp",
+          "to": "trino",
+          "color": "#58a6ff",
+          "num": 12,
+          "fromBottom": true,
+          "toTop": true,
+          "glow": "sec_process"
+        },
+        {
+          "text": "⬡ Process: seccomp + Landlock restrictions active",
+          "mode": "lightup",
+          "target": "s_seccomp",
+          "badge": "✓"
+        },
+        {
+          "text": "13. Query results returned",
+          "mode": "arrow",
+          "from": "trino",
+          "to": "mcp",
+          "color": "#3fb950",
+          "num": 13,
+          "fromTop": true,
+          "toBottom": true,
+          "toXOff": 30
+        },
+        {
+          "text": "14. Response flows back through mesh",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "hermes",
+          "color": "#3fb950",
+          "num": 14,
+          "fromLeft": true,
+          "toRight": true,
+          "yOff": 8
+        },
+        {
+          "text": "15. Results displayed to Sally",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "sally",
+          "color": "#3fb950",
+          "num": 15,
+          "fromLeft": true,
+          "toRight": true
+        }
+      ]
+    },
+    "denied": {
+      "label": "Permission Denied (SpiceDB)",
+      "steps": [
+        {
+          "text": "1. Sally authenticates with Keycloak",
+          "mode": "arrow",
+          "from": "sally",
+          "to": "keycloak",
+          "color": "#f0883e",
+          "num": 1
+        },
+        {
+          "text": "2. Keycloak issues RS256 JWT (held in dashboard memory only) (aud: spiffe://retail-demo/...)",
+          "mode": "arrow",
+          "from": "keycloak",
+          "to": "hermes",
+          "color": "#f0883e",
+          "num": 2,
+          "fromBottom": true,
+          "toTop": true,
+          "glow": "sec_cred"
+        },
+        {
+          "text": "⬡ Credential: RS256 JWT with 5-min TTL issued",
+          "mode": "lightup",
+          "target": "s_keycloak",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: Short-lived JWT — 5-min TTL limits exposure",
+          "mode": "lightup",
+          "target": "s_shortlived",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: Access token (not ID token) forwarded",
+          "mode": "lightup",
+          "target": "s_accesstok",
+          "badge": "✓"
+        },
+        {
+          "text": "3. Agent sends plain HTTP to Auth Proxy (:8889)",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "auth_proxy",
+          "color": "#f0883e",
+          "num": 3,
+          "fromBottom": true,
+          "toTop": true
+        },
+        {
+          "text": "⬡ Credential: Auth Proxy injects JWT — agent never sees token",
+          "mode": "lightup",
+          "target": "s_authproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: PR_SET_DUMPABLE=0 — /proc blocked for siblings",
+          "mode": "lightup",
+          "target": "s_dumpable",
+          "badge": "✓"
+        },
+        {
+          "text": "3b. Auth Proxy forwards with Authorization: Bearer header",
+          "mode": "arrow",
+          "from": "auth_proxy",
+          "to": "opa_proxy",
+          "color": "#f0883e",
+          "num": 3,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sandbox"
+        },
+        {
+          "text": "⬡ Network: OPA Proxy — policy allows MCP endpoint",
+          "mode": "lightup",
+          "target": "s_opaproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Hermes sandbox policy — per-binary allowlist",
+          "mode": "lightup",
+          "target": "s_sandbox_policy",
+          "badge": "✓"
+        },
+        {
+          "text": "3b. OPA Proxy forwards to cluster (policy: ALLOW)",
+          "mode": "arrow",
+          "from": "opa_proxy",
+          "to": "svc",
+          "color": "#58a6ff",
+          "num": 3,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_network"
+        },
+        {
+          "text": "⬡ Network: Service:9090 → Envoy:15124 routing enforced",
+          "mode": "lightup",
+          "target": "s_k8sroute",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: TOFU — gateway TLS certificate pinned",
+          "mode": "lightup",
+          "target": "s_tofu",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Sandbox in isolated network namespace",
+          "mode": "lightup",
+          "target": "s_netns",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Landlock filesystem isolation active",
+          "mode": "lightup",
+          "target": "s_landlock",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Subprocess restrictions inherited by children",
+          "mode": "lightup",
+          "target": "s_inherit",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Authorization: OPA network policy — sandbox → MCP only",
+          "mode": "lightup",
+          "target": "s_opa",
+          "badge": "✓"
+        },
+        {
+          "text": "4. K8s Service routes to Envoy sidecar",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "envoy",
+          "color": "#58a6ff",
+          "num": 4,
+          "fromRight": true,
+          "toLeft": true
+        },
+        {
+          "text": "⬡ Network: iptables redirects all traffic through Envoy",
+          "mode": "lightup",
+          "target": "s_iptables",
+          "badge": "✓"
+        },
+        {
+          "text": "5. Envoy → AuthBridge (ext_authz check)",
+          "mode": "arrow",
+          "from": "envoy",
+          "to": "authbridge",
+          "color": "#f0883e",
+          "num": 5,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_identity"
+        },
+        {
+          "text": "⬡ Identity: AuthBridge JWKS signature + audience check",
+          "mode": "lightup",
+          "target": "s_authbridge",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: No static secrets — SPIFFE SVID replaces keys",
+          "mode": "lightup",
+          "target": "s_nosecrets",
+          "badge": "✓"
+        },
+        {
+          "text": "6. AuthBridge: RS256 verify via JWKS (kid: UWDn_5Ogw...)",
+          "mode": "arrow",
+          "from": "authbridge",
+          "to": "keycloak",
+          "color": "#f0883e",
+          "num": 6,
+          "fromTop": true,
+          "toRight": true,
+          "waypoints": [
+            {
+              "x": 1187,
+              "y": 75
+            }
+          ]
+        },
+        {
+          "text": "⬡ Identity: SPIFFE audience matches workload identity",
+          "mode": "lightup",
+          "target": "s_spiffe",
+          "badge": "✓"
+        },
+        {
+          "text": "7. JWT valid: sub=53373b46..., azp=hermes-dashboard, aud=spiffe://...",
+          "mode": "lightup",
+          "target": "authbridge",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: On-Behalf-Of — preferred_username:sally forwarded",
+          "mode": "lightup",
+          "target": "s_obo",
+          "badge": "✓"
+        },
+        {
+          "text": "8. Identity injected: x-auth-username: sally, x-auth-email: sally@redhat.com",
+          "mode": "arrow",
+          "from": "authbridge",
+          "to": "mcp",
+          "color": "#58a6ff",
+          "num": 8,
+          "fromRight": true,
+          "toLeft": true
+        },
+        {
+          "text": "9. MCP reads preferred_username: sally from validated headers",
+          "mode": "lightup",
+          "target": "mcp",
+          "badge": 9
+        },
+        {
+          "text": "⬡ Authorization: sqlglot AST — SQL tables validated against SpiceDB",
+          "mode": "lightup",
+          "target": "s_sqlglot",
+          "badge": "✓"
+        },
+        {
+          "text": "10. SpiceDB: CheckPermission(user:sally, catalog:finance)",
+          "mode": "arrow",
+          "from": "mcp",
+          "to": "spicedb",
+          "color": "#d2a8ff",
+          "num": 10,
+          "fromBottom": true,
+          "toTop": true,
+          "glow": "sec_authz"
+        },
+        {
+          "text": "⬡ Authorization: SpiceDB ReBAC permission check",
+          "mode": "lightup",
+          "target": "s_spicedb",
+          "badge": "✗"
+        },
+        {
+          "text": "11. Permission: DENIED",
+          "mode": "lightup",
+          "target": "spicedb",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "12. Access denied → MCP returns error",
+          "mode": "lightup",
+          "target": "mcp",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "13. Error response through mesh",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "hermes",
+          "color": "#f85149",
+          "num": 13,
+          "fromLeft": true,
+          "toRight": true,
+          "yOff": 8
+        },
+        {
+          "text": "14. Permission denied shown to Sally",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "sally",
+          "color": "#f85149",
+          "num": 14,
+          "fromLeft": true,
+          "toRight": true
+        }
+      ]
+    },
+    "noauth": {
+      "label": "Missing JWT (401)",
+      "steps": [
+        {
+          "text": "1. Agent sends plain HTTP to Auth Proxy (:8889)",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "auth_proxy",
+          "color": "#f0883e",
+          "num": 1,
+          "fromBottom": true,
+          "toTop": true
+        },
+        {
+          "text": "⬡ Credential: Auth Proxy injects JWT — agent never sees token",
+          "mode": "lightup",
+          "target": "s_authproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Credential: PR_SET_DUMPABLE=0 — /proc blocked for siblings",
+          "mode": "lightup",
+          "target": "s_dumpable",
+          "badge": "✓"
+        },
+        {
+          "text": "1b. Auth Proxy forwards with Authorization: Bearer header",
+          "mode": "arrow",
+          "from": "auth_proxy",
+          "to": "opa_proxy",
+          "color": "#f0883e",
+          "num": 1,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sandbox"
+        },
+        {
+          "text": "⬡ Network: OPA Proxy — policy allows MCP endpoint",
+          "mode": "lightup",
+          "target": "s_opaproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Hermes sandbox policy — per-binary allowlist",
+          "mode": "lightup",
+          "target": "s_sandbox_policy",
+          "badge": "✓"
+        },
+        {
+          "text": "1b. OPA Proxy forwards to cluster (policy: ALLOW)",
+          "mode": "arrow",
+          "from": "opa_proxy",
+          "to": "svc",
+          "color": "#58a6ff",
+          "num": 1,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_network"
+        },
+        {
+          "text": "⬡ Network: Service:9090 → Envoy:15124 routing enforced",
+          "mode": "lightup",
+          "target": "s_k8sroute",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Network: Sandbox in isolated network namespace",
+          "mode": "lightup",
+          "target": "s_netns",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Landlock filesystem isolation active",
+          "mode": "lightup",
+          "target": "s_landlock",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: Subprocess restrictions inherited by children",
+          "mode": "lightup",
+          "target": "s_inherit",
+          "badge": "✓"
+        },
+        {
+          "text": "2. K8s Service routes to Envoy sidecar",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "envoy",
+          "color": "#58a6ff",
+          "num": 2,
+          "fromRight": true,
+          "toLeft": true
+        },
+        {
+          "text": "⬡ Network: iptables redirects all traffic through Envoy",
+          "mode": "lightup",
+          "target": "s_iptables",
+          "badge": "✓"
+        },
+        {
+          "text": "3. Envoy → AuthBridge (ext_authz check)",
+          "mode": "arrow",
+          "from": "envoy",
+          "to": "authbridge",
+          "color": "#f0883e",
+          "num": 3,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sec_identity"
+        },
+        {
+          "text": "⬡ Identity: AuthBridge — no JWT present, fail-closed",
+          "mode": "lightup",
+          "target": "s_authbridge",
+          "badge": "✓"
+        },
+        {
+          "text": "4. AuthBridge: missing Authorization header",
+          "mode": "lightup",
+          "target": "authbridge",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "5. AuthBridge returns 401 to Envoy",
+          "mode": "arrow",
+          "from": "authbridge",
+          "to": "envoy",
+          "color": "#f85149",
+          "num": 5,
+          "fromLeft": true,
+          "toRight": true,
+          "yOff": 10
+        },
+        {
+          "text": "6. Envoy rejects request",
+          "mode": "lightup",
+          "target": "envoy",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "7. 401 Unauthorized → Hermes",
+          "mode": "arrow",
+          "from": "svc",
+          "to": "hermes",
+          "color": "#f85149",
+          "num": 7,
+          "fromLeft": true,
+          "toRight": true,
+          "yOff": 8
+        }
+      ]
+    },
+    "attack": {
+      "label": "Direct Access Blocked (OPA Proxy)",
+      "steps": [
+        {
+          "text": "1. Agent installs trino-python-driver in sandbox",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "hermes",
+          "color": "#58a6ff",
+          "num": 1,
+          "fromRight": true,
+          "toRight": true
+        },
+        {
+          "text": "Agent attempts direct connection to Trino",
+          "mode": "lightup",
+          "target": "hermes",
+          "badge": "1"
+        },
+        {
+          "text": "2. Connection attempt exits sandbox via OPA Proxy",
+          "mode": "arrow",
+          "from": "hermes",
+          "to": "opa_proxy",
+          "color": "#58a6ff",
+          "num": 2,
+          "fromRight": true,
+          "toLeft": true,
+          "glow": "sandbox"
+        },
+        {
+          "text": "⬡ Network: OPA Proxy checks policy-retail.yaml",
+          "mode": "lightup",
+          "target": "s_opaproxy",
+          "badge": "✓"
+        },
+        {
+          "text": "Policy lookup: trino.trino.svc:8080 → DENY",
+          "mode": "lightup",
+          "target": "opa_proxy",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "3. OPA Proxy returns 403 policy_denied",
+          "mode": "arrow",
+          "from": "opa_proxy",
+          "to": "hermes",
+          "color": "#f85149",
+          "num": 3,
+          "fromLeft": true,
+          "toRight": true,
+          "yOff": 10
+        },
+        {
+          "text": "Agent receives: {\"error\":\"policy_denied\"}",
+          "mode": "lightup",
+          "target": "hermes",
+          "badge": "✗",
+          "errColor": "#f85149"
+        },
+        {
+          "text": "⬡ Network: Direct DB access blocked at L7",
+          "mode": "lightup",
+          "target": "s_opaproxy",
+          "badge": "✗",
+          "errColor": "#f85149"
+        }
+      ]
+    }
+  },
+  "inspector": {
+    "initialState": {
+      "phase": "request",
+      "label": "MCP Tool Call",
+      "headers": [
+        {
+          "value": "POST /mcp",
+          "style": "keep",
+          "id": "h-method"
+        },
+        {
+          "value": "Authorization: Bearer eyJhbGciOiJSUzI1NiIs...",
+          "style": "keep",
+          "id": "h-auth"
+        },
+        {
+          "value": "Content-Type: application/json",
+          "style": "keep",
+          "id": "h-ct"
+        }
+      ],
+      "body": [
+        {
+          "value": "\"jsonrpc\": \"2.0\"",
+          "style": "keep",
+          "id": "b-rpc"
+        },
+        {
+          "value": "\"method\": \"tools/call\"",
+          "style": "keep",
+          "id": "b-method"
+        },
+        {
+          "value": "\"params\": {\"name\": \"query_orders\"}",
+          "style": "keep",
+          "id": "b-params"
+        }
+      ],
+      "cycleState": []
+    },
+    "mutations": {
+      "happy": [
+        {
+          "step": 1,
+          "label": "① Sally authenticates (OIDC login)",
+          "actions": []
+        },
+        {
+          "step": 2,
+          "label": "② Keycloak issues RS256 JWT",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            },
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── JWT Header ──",
+                  "style": "keep",
+                  "id": "c-hdr-label"
+                },
+                {
+                  "value": "alg = RS256",
+                  "style": "add",
+                  "id": "c-alg"
+                },
+                {
+                  "value": "typ = JWT",
+                  "style": "add",
+                  "id": "c-typ"
+                },
+                {
+                  "value": "kid = UWDn_5Ogw...",
+                  "style": "add",
+                  "id": "c-kid"
+                },
+                {
+                  "value": "── JWT Payload ──",
+                  "style": "keep",
+                  "id": "c-pay-label"
+                },
+                {
+                  "value": "sub = 53373b46-59b1-4376-a3b4-534c70053c13",
+                  "style": "add",
+                  "id": "c-sub"
+                },
+                {
+                  "value": "preferred_username = sally",
+                  "style": "add",
+                  "id": "c-user"
+                },
+                {
+                  "value": "email = sally@redhat.com",
+                  "style": "add",
+                  "id": "c-email"
+                },
+                {
+                  "value": "aud = spiffe://retail-demo/ns/openshell/sa/default",
+                  "style": "add",
+                  "id": "c-aud"
+                },
+                {
+                  "value": "azp = hermes-dashboard",
+                  "style": "add",
+                  "id": "c-azp"
+                },
+                {
+                  "value": "iss = https://keycloak-.../realms/prelude-...",
+                  "style": "add",
+                  "id": "c-iss"
+                },
+                {
+                  "value": "exp = 5 min TTL (09:01:46 UTC)",
+                  "style": "add",
+                  "id": "c-exp"
+                },
+                {
+                  "value": "scope = profile email",
+                  "style": "add",
+                  "id": "c-scope"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 9,
+          "label": "③ MCP tool call with JWT",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 19,
+          "label": "④ K8s Service → Envoy",
+          "actions": []
+        },
+        {
+          "step": 21,
+          "label": "⑤ Envoy → AuthBridge (ext_authz)",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 24,
+          "label": "⑥ AuthBridge: JWKS signature check (kid lookup)",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            },
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── JWT Header ──",
+                  "style": "keep",
+                  "id": "c-hdr-label"
+                },
+                {
+                  "value": "alg = RS256",
+                  "style": "highlight",
+                  "id": "c-alg"
+                },
+                {
+                  "value": "typ = JWT",
+                  "style": "keep",
+                  "id": "c-typ"
+                },
+                {
+                  "value": "kid = UWDn_5Ogw... → JWKS lookup",
+                  "style": "highlight",
+                  "id": "c-kid"
+                },
+                {
+                  "value": "── JWT Payload ──",
+                  "style": "keep",
+                  "id": "c-pay-label"
+                },
+                {
+                  "value": "sub = 53373b46-59b1-4376-a3b4-534c70053c13",
+                  "style": "keep",
+                  "id": "c-sub"
+                },
+                {
+                  "value": "preferred_username = sally",
+                  "style": "keep",
+                  "id": "c-user"
+                },
+                {
+                  "value": "email = sally@redhat.com",
+                  "style": "keep",
+                  "id": "c-email"
+                },
+                {
+                  "value": "aud = spiffe://retail-demo/... → audience ✓",
+                  "style": "highlight",
+                  "id": "c-aud"
+                },
+                {
+                  "value": "azp = hermes-dashboard",
+                  "style": "keep",
+                  "id": "c-azp"
+                },
+                {
+                  "value": "iss = https://keycloak-... → JWKS fetch",
+                  "style": "highlight",
+                  "id": "c-iss"
+                },
+                {
+                  "value": "exp = 09:01:46 UTC → not expired ✓",
+                  "style": "highlight",
+                  "id": "c-exp"
+                },
+                {
+                  "value": "scope = profile email",
+                  "style": "keep",
+                  "id": "c-scope"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 26,
+          "label": "⑦ JWT signature valid, claims verified ✓",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "del"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-subject: 53373b46-59b1-4376-a3b4-534c70053c13",
+              "id": "h-xsub"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-username: sally",
+              "id": "h-xuser"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-email: sally@redhat.com",
+              "id": "h-xemail"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-client: hermes-dashboard",
+              "id": "h-xclient"
+            },
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── Validated Identity ──",
+                  "style": "keep",
+                  "id": "c-val-label"
+                },
+                {
+                  "value": "sub = 53373b46-59b1-4376-a3b4-534c70053c13",
+                  "style": "add",
+                  "id": "c-sub"
+                },
+                {
+                  "value": "preferred_username = sally",
+                  "style": "add",
+                  "id": "c-user"
+                },
+                {
+                  "value": "email = sally@redhat.com",
+                  "style": "add",
+                  "id": "c-email"
+                },
+                {
+                  "value": "azp = hermes-dashboard",
+                  "style": "add",
+                  "id": "c-azp"
+                },
+                {
+                  "value": "signature = RS256 verified ✓",
+                  "style": "add",
+                  "id": "c-sig"
+                },
+                {
+                  "value": "audience = SPIFFE matched ✓",
+                  "style": "add",
+                  "id": "c-audok"
+                },
+                {
+                  "value": "expiry = not expired ✓",
+                  "style": "add",
+                  "id": "c-expok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 28,
+          "label": "⑧ Request → MCP Server (identity in headers)",
+          "actions": [
+            {
+              "id": "h-xuser",
+              "style": "highlight"
+            },
+            {
+              "id": "h-xemail",
+              "style": "highlight"
+            },
+            {
+              "id": "h-xclient",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 29,
+          "label": "⑨ MCP extracts preferred_username: sally",
+          "actions": [
+            {
+              "id": "h-xuser",
+              "style": "highlight"
+            },
+            {
+              "id": "h-xsub",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 31,
+          "label": "⑩ SpiceDB: CheckPermission",
+          "actions": [
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── SpiceDB Check ──",
+                  "style": "keep",
+                  "id": "c-spice-label"
+                },
+                {
+                  "value": "subject = user:sally",
+                  "style": "highlight",
+                  "id": "c-subject"
+                },
+                {
+                  "value": "resource = dataset:orders",
+                  "style": "highlight",
+                  "id": "c-resource"
+                },
+                {
+                  "value": "permission = view",
+                  "style": "highlight",
+                  "id": "c-perm"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 33,
+          "label": "⑪ Permission: ALLOWED ✓",
+          "actions": [
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── SpiceDB Check ──",
+                  "style": "keep",
+                  "id": "c-spice-label"
+                },
+                {
+                  "value": "subject = user:sally",
+                  "style": "keep",
+                  "id": "c-subject"
+                },
+                {
+                  "value": "resource = dataset:orders",
+                  "style": "keep",
+                  "id": "c-resource"
+                },
+                {
+                  "value": "permission = view",
+                  "style": "keep",
+                  "id": "c-perm"
+                },
+                {
+                  "value": "result = PERMISSIONSHIP_HAS_PERMISSION",
+                  "style": "add",
+                  "id": "c-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 34,
+          "label": "⑫ Trino query executes",
+          "actions": [
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "SELECT * FROM orders",
+                  "style": "highlight",
+                  "id": "b-sql"
+                },
+                {
+                  "value": "WHERE user_context = 'sally'",
+                  "style": "highlight",
+                  "id": "b-where"
+                }
+              ]
+            },
+            {
+              "action": "clearCycleState"
+            }
+          ]
+        },
+        {
+          "step": 36,
+          "label": "⑬ Query results returned",
+          "phase": "response",
+          "actions": [
+            {
+              "action": "replaceHeaders",
+              "headers": [
+                {
+                  "value": "HTTP/1.1 200 OK",
+                  "style": "keep",
+                  "id": "r-status"
+                },
+                {
+                  "value": "Content-Type: application/json",
+                  "style": "keep",
+                  "id": "r-ct"
+                }
+              ]
+            },
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "\"jsonrpc\": \"2.0\"",
+                  "style": "keep",
+                  "id": "r-rpc"
+                },
+                {
+                  "value": "\"result\": {\"rows\": [{\"id\":1,\"amount\":42.00}]}",
+                  "style": "add",
+                  "id": "r-result"
+                },
+                {
+                  "value": "\"status\": \"success\"",
+                  "style": "add",
+                  "id": "r-ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 37,
+          "label": "⑭ Response → Hermes",
+          "actions": [
+            {
+              "id": "r-result",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 38,
+          "label": "⑮ Results displayed to Sally",
+          "actions": [
+            {
+              "id": "r-result",
+              "style": "highlight"
+            },
+            {
+              "id": "r-ok",
+              "style": "highlight"
+            }
+          ]
+        }
+      ],
+      "denied": [
+        {
+          "step": 1,
+          "label": "① Sally authenticates (OIDC login)",
+          "actions": []
+        },
+        {
+          "step": 2,
+          "label": "② Keycloak issues RS256 JWT",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            },
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── JWT Payload ──",
+                  "style": "keep",
+                  "id": "c-pay-label"
+                },
+                {
+                  "value": "alg = RS256, kid = UWDn_5Ogw...",
+                  "style": "add",
+                  "id": "c-alg"
+                },
+                {
+                  "value": "sub = 53373b46-59b1-4376-a3b4-534c70053c13",
+                  "style": "add",
+                  "id": "c-sub"
+                },
+                {
+                  "value": "preferred_username = sally",
+                  "style": "add",
+                  "id": "c-user"
+                },
+                {
+                  "value": "email = sally@redhat.com",
+                  "style": "add",
+                  "id": "c-email"
+                },
+                {
+                  "value": "aud = spiffe://retail-demo/ns/openshell/sa/default",
+                  "style": "add",
+                  "id": "c-aud"
+                },
+                {
+                  "value": "azp = hermes-dashboard",
+                  "style": "add",
+                  "id": "c-azp"
+                },
+                {
+                  "value": "iss = https://keycloak-.../realms/prelude-...",
+                  "style": "add",
+                  "id": "c-iss"
+                },
+                {
+                  "value": "exp = 5 min TTL",
+                  "style": "add",
+                  "id": "c-exp"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 9,
+          "label": "③ MCP tool call with JWT in Authorization header",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 19,
+          "label": "④ K8s Service → Envoy",
+          "actions": []
+        },
+        {
+          "step": 21,
+          "label": "⑤ Envoy → AuthBridge (ext_authz)",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 24,
+          "label": "⑥ AuthBridge: RS256 signature + claims verified",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "highlight"
+            },
+            {
+              "id": "c-alg",
+              "style": "highlight"
+            },
+            {
+              "id": "c-aud",
+              "style": "highlight"
+            },
+            {
+              "id": "c-iss",
+              "style": "highlight"
+            },
+            {
+              "id": "c-exp",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 26,
+          "label": "⑦ JWT signature valid, claims verified ✓",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "del"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-subject: 53373b46-59b1-...534c70053c13",
+              "id": "h-xsub"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-username: sally",
+              "id": "h-xuser"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-email: sally@redhat.com",
+              "id": "h-xemail"
+            },
+            {
+              "action": "add",
+              "target": "headers",
+              "value": "x-auth-client: hermes-dashboard",
+              "id": "h-xclient"
+            },
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── Validated Identity ──",
+                  "style": "keep",
+                  "id": "c-val-label"
+                },
+                {
+                  "value": "preferred_username = sally",
+                  "style": "add",
+                  "id": "c-user"
+                },
+                {
+                  "value": "email = sally@redhat.com",
+                  "style": "add",
+                  "id": "c-email"
+                },
+                {
+                  "value": "azp = hermes-dashboard",
+                  "style": "add",
+                  "id": "c-azp"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 28,
+          "label": "⑧ Request → MCP Server (identity in headers)",
+          "actions": [
+            {
+              "id": "h-xuser",
+              "style": "highlight"
+            },
+            {
+              "id": "h-xclient",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 29,
+          "label": "⑨ MCP extracts preferred_username: sally",
+          "actions": [
+            {
+              "id": "h-xuser",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 31,
+          "label": "⑩ SpiceDB: CheckPermission",
+          "actions": [
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── SpiceDB Check ──",
+                  "style": "keep",
+                  "id": "c-spice-label"
+                },
+                {
+                  "value": "subject = user:sally",
+                  "style": "highlight",
+                  "id": "c-subject"
+                },
+                {
+                  "value": "resource = catalog:finance",
+                  "style": "highlight",
+                  "id": "c-resource"
+                },
+                {
+                  "value": "permission = view",
+                  "style": "highlight",
+                  "id": "c-perm"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 33,
+          "label": "⑪ Permission: DENIED ✗",
+          "actions": [
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── SpiceDB Check ──",
+                  "style": "keep",
+                  "id": "c-spice-label"
+                },
+                {
+                  "value": "subject = user:sally",
+                  "style": "keep",
+                  "id": "c-subject"
+                },
+                {
+                  "value": "resource = catalog:finance",
+                  "style": "keep",
+                  "id": "c-resource"
+                },
+                {
+                  "value": "permission = view",
+                  "style": "keep",
+                  "id": "c-perm"
+                },
+                {
+                  "value": "result = NO_PERMISSION",
+                  "style": "err",
+                  "id": "c-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 34,
+          "label": "⑫ Access denied → MCP returns error",
+          "phase": "error",
+          "actions": [
+            {
+              "action": "replaceHeaders",
+              "headers": [
+                {
+                  "value": "HTTP/1.1 403 Forbidden",
+                  "style": "err",
+                  "id": "r-status"
+                },
+                {
+                  "value": "Content-Type: application/json",
+                  "style": "keep",
+                  "id": "r-ct"
+                }
+              ]
+            },
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "\"jsonrpc\": \"2.0\"",
+                  "style": "keep",
+                  "id": "r-rpc"
+                },
+                {
+                  "value": "\"error\": {\"code\": -32600}",
+                  "style": "err",
+                  "id": "r-err"
+                },
+                {
+                  "value": "\"message\": \"Permission denied: sally cannot access catalog:finance\"",
+                  "style": "err",
+                  "id": "r-msg"
+                }
+              ]
+            },
+            {
+              "action": "clearCycleState"
+            }
+          ]
+        },
+        {
+          "step": 35,
+          "label": "⑬ Error response → Hermes",
+          "actions": [
+            {
+              "id": "r-status",
+              "style": "highlight"
+            }
+          ]
+        },
+        {
+          "step": 36,
+          "label": "⑭ Permission denied shown to Sally",
+          "actions": [
+            {
+              "id": "r-err",
+              "style": "highlight"
+            },
+            {
+              "id": "r-msg",
+              "style": "highlight"
+            }
+          ]
+        }
+      ],
+      "noauth": [
+        {
+          "step": 4,
+          "label": "① Request without JWT",
+          "actions": [
+            {
+              "id": "h-auth",
+              "style": "del"
+            }
+          ]
+        },
+        {
+          "step": 12,
+          "label": "② K8s Service → Envoy",
+          "actions": []
+        },
+        {
+          "step": 14,
+          "label": "③ Envoy → AuthBridge (ext_authz)",
+          "actions": []
+        },
+        {
+          "step": 16,
+          "label": "④ Missing Authorization header",
+          "actions": []
+        },
+        {
+          "step": 17,
+          "label": "⑤ AuthBridge returns 401",
+          "phase": "error",
+          "actions": [
+            {
+              "action": "replaceHeaders",
+              "headers": [
+                {
+                  "value": "HTTP/1.1 401 Unauthorized",
+                  "style": "err",
+                  "id": "r-status"
+                },
+                {
+                  "value": "Content-Type: application/json",
+                  "style": "keep",
+                  "id": "r-ct"
+                },
+                {
+                  "value": "WWW-Authenticate: Bearer realm=\"keycloak\"",
+                  "style": "err",
+                  "id": "r-www"
+                }
+              ]
+            },
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "\"error\": \"unauthorized\"",
+                  "style": "err",
+                  "id": "r-err"
+                },
+                {
+                  "value": "\"message\": \"Missing Authorization header\"",
+                  "style": "err",
+                  "id": "r-msg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 18,
+          "label": "⑥ Envoy rejects request",
+          "actions": []
+        },
+        {
+          "step": 19,
+          "label": "⑦ 401 Unauthorized → Hermes",
+          "actions": [
+            {
+              "id": "r-status",
+              "style": "highlight"
+            }
+          ]
+        }
+      ],
+      "attack": [
+        {
+          "step": 1,
+          "label": "① Agent installs trino-python-driver",
+          "actions": [
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "import trino",
+                  "style": "highlight",
+                  "id": "b-import"
+                },
+                {
+                  "value": "conn = trino.dbapi.connect(",
+                  "style": "highlight",
+                  "id": "b-conn"
+                },
+                {
+                  "value": "  host='trino.trino.svc',",
+                  "style": "highlight",
+                  "id": "b-host"
+                },
+                {
+                  "value": "  port=8080)",
+                  "style": "highlight",
+                  "id": "b-port"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 3,
+          "label": "② Connection via OPA Proxy",
+          "actions": [
+            {
+              "action": "setCycleState",
+              "cycleState": [
+                {
+                  "value": "── OPA Policy Check ──",
+                  "style": "keep",
+                  "id": "c-label"
+                },
+                {
+                  "value": "dst = trino.trino.svc:8080",
+                  "style": "highlight",
+                  "id": "c-dst"
+                },
+                {
+                  "value": "policy = policy-retail.yaml",
+                  "style": "keep",
+                  "id": "c-policy"
+                },
+                {
+                  "value": "result = DENY",
+                  "style": "err",
+                  "id": "c-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 5,
+          "label": "③ Policy: DENY",
+          "phase": "error",
+          "actions": [
+            {
+              "action": "replaceHeaders",
+              "headers": [
+                {
+                  "value": "HTTP/1.1 403 Forbidden",
+                  "style": "err",
+                  "id": "r-status"
+                },
+                {
+                  "value": "Content-Type: application/json",
+                  "style": "keep",
+                  "id": "r-ct"
+                },
+                {
+                  "value": "X-OPA-Policy: policy-retail",
+                  "style": "err",
+                  "id": "r-policy"
+                }
+              ]
+            },
+            {
+              "action": "replaceBody",
+              "body": [
+                {
+                  "value": "\"error\": \"policy_denied\"",
+                  "style": "err",
+                  "id": "r-err"
+                },
+                {
+                  "value": "\"destination\": \"trino.trino.svc:8080\"",
+                  "style": "err",
+                  "id": "r-dst"
+                },
+                {
+                  "value": "\"message\": \"Connection blocked by sandbox network policy\"",
+                  "style": "err",
+                  "id": "r-msg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "step": 6,
+          "label": "④ 403 → Agent",
+          "actions": [
+            {
+              "id": "r-status",
+              "style": "highlight"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "legend": [
+    {
+      "label": "Request",
+      "color": "#58a6ff"
+    },
+    {
+      "label": "Response",
+      "color": "#3fb950"
+    },
+    {
+      "label": "Auth / Identity",
+      "color": "#f0883e"
+    },
+    {
+      "label": "Authorization",
+      "color": "#d2a8ff"
+    },
+    {
+      "label": "Error / Denied",
+      "color": "#f85149"
+    }
+  ],
+  "flowOrder": [
+    "happy",
+    "denied",
+    "noauth",
+    "attack"
+  ],
+  "defaultFlow": "happy"
+});
+    viz.state.loopMode = true;
+    var lb = document.getElementById("fs-loop");
+    if (lb) { lb.textContent = "\u27F3 Loop ON"; lb.style.borderColor = "#3fb950"; lb.style.color = "#3fb950"; }
+    viz.play();
+  } catch (e) {
+    console.error("FlowStory load error:", e);
+    document.body.innerHTML = "<div style=\"padding:40px;color:#f85149;font-family:monospace\"><h2>FlowStory Load Error</h2><pre>" + e.message + "</pre></div>";
+  }
+})();
+</script>
+</body>
+</html>
