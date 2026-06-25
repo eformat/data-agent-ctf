@@ -1,6 +1,9 @@
-.PHONY: bootstrap test validate encrypt decrypt clean
+.PHONY: bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp
 
 NAMESPACE ?= data-agent-ctf
+OPENSHELL_SRC ?= $(HOME)/git/OpenShell
+MCP_SRC ?= $(HOME)/git/data-agent-template
+REGISTRY ?= quay.io/eformat
 
 bootstrap: ## Deploy everything to cluster (one command)
 	./scripts/bootstrap.sh --namespace $(NAMESPACE)
@@ -36,6 +39,38 @@ decrypt: ## Decrypt all secret files with sops
 clean: ## Delete the namespace and all resources
 	oc delete project $(NAMESPACE) --ignore-not-found
 	oc delete application -n openshift-gitops -l app.kubernetes.io/part-of=retail-ctf --ignore-not-found
+
+## ── Image Builds ──────────────────────────────────────────────
+
+build-all: build-gateway build-deployer build-hermes build-mcp ## Build and push all images
+
+build-gateway: ## Build + push openshell-gateway (requires $(OPENSHELL_SRC))
+	cd $(OPENSHELL_SRC) && cargo build --release -p openshell-server
+	cp $(OPENSHELL_SRC)/target/release/openshell-gateway /tmp/openshell-gateway
+	cp /lib64/libz3.so.4.15 /tmp/libz3.so.4.15 2>/dev/null || cp /usr/lib64/libz3.so.4.15 /tmp/libz3.so.4.15
+	cp /lib64/libgmp.so.10 /tmp/libgmp.so.10 2>/dev/null || cp /usr/lib64/libgmp.so.10 /tmp/libgmp.so.10
+	printf 'FROM gcr.io/distroless/cc-debian13:latest\nWORKDIR /app\nCOPY openshell-gateway /usr/local/bin/openshell-gateway\nCOPY libz3.so.4.15 /usr/lib/x86_64-linux-gnu/libz3.so.4.15\nCOPY libgmp.so.10 /usr/lib/x86_64-linux-gnu/libgmp.so.10\nUSER 1000:1000\nEXPOSE 8080\nENTRYPOINT ["/usr/local/bin/openshell-gateway"]\nCMD ["--bind-address", "0.0.0.0:8080"]\n' > /tmp/Containerfile.gateway
+	podman build -t $(REGISTRY)/openshell-gateway:v0.0.69 -f /tmp/Containerfile.gateway /tmp/
+	podman push $(REGISTRY)/openshell-gateway:v0.0.69
+
+build-deployer: ## Build + push openshell-deployer (requires $(OPENSHELL_SRC))
+	cd $(OPENSHELL_SRC) && cargo build --release -p openshell-cli
+	cp $(OPENSHELL_SRC)/target/release/openshell /tmp/openshell
+	cp /lib64/libz3.so.4.15 /tmp/libz3.so.4.15 2>/dev/null || true
+	cp /lib64/libgmp.so.10 /tmp/libgmp.so.10 2>/dev/null || true
+	podman build -t $(REGISTRY)/openshell-deployer:latest -f scripts/Containerfile.openshell-deployer /tmp/
+	podman push $(REGISTRY)/openshell-deployer:latest
+
+build-hermes: ## Build + push hermes-openshell sandbox image
+	podman build -t $(REGISTRY)/hermes-openshell:latest -t $(REGISTRY)/hermes-openshell:0.17.0 -f scripts/Containerfile.hermes-sandbox .
+	podman push $(REGISTRY)/hermes-openshell:latest
+	podman push $(REGISTRY)/hermes-openshell:0.17.0
+
+build-mcp: ## Build + push retail-mcp-server (requires $(MCP_SRC))
+	podman build -t $(REGISTRY)/retail-mcp-server:latest -f scripts/Containerfile.retail-mcp-server $(MCP_SRC)
+	podman push $(REGISTRY)/retail-mcp-server:latest
+
+## ── Cluster Operations ───────────────────────────────────────
 
 status: ## Show deployment status
 	@echo "=== ArgoCD Applications ==="

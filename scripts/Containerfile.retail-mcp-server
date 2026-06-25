@@ -1,3 +1,7 @@
+# Build from data-agent-template repo root (contains pyproject.toml + src/):
+#   podman build -t quay.io/eformat/retail-mcp-server:latest \
+#     -f /path/to/data-agent-ctf/scripts/Containerfile.retail-mcp-server \
+#     ~/git/data-agent-template
 FROM registry.access.redhat.com/ubi9/python-312:latest
 
 USER 0

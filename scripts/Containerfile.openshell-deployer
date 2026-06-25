@@ -1,5 +1,6 @@
 FROM registry.access.redhat.com/ubi10/ubi-minimal
 COPY openshell /usr/bin/openshell
 COPY libz3.so.4.15 /usr/lib64/libz3.so.4.15
+COPY libgmp.so.10 /usr/lib64/libgmp.so.10
 RUN microdnf install -y --nodocs bash python3 tar gzip && microdnf clean all && \
     curl -sL "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.21/openshift-client-linux.tar.gz" | tar xz -C /usr/bin oc kubectl
