@@ -47,9 +47,9 @@ The Landsraad of Acme Retail Corp has three Great Houses, each controlling their
 
 | House | Scion | Mentat Agent | Spice Reserves |
 |-------|-------|-------------|----------------|
-| House Atreides (Sales) | `sally` (pw: `password`) | <a href="https://retail-sales.apps.prelude-m6wl4-vs9lb.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Sales</a> | orders, pipeline, customers, acquisition_costs |
-| House Harkonnen (Finance) | `fred` (pw: `password`) | <a href="https://retail-finance.apps.prelude-m6wl4-vs9lb.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Finance</a> | revenue, expenses, margins, forecasts |
-| House Corrino (Operations) | `alex` (pw: `password`) | <a href="https://retail-ops.apps.prelude-m6wl4-vs9lb.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Ops</a> | inventory, shipments, warehouses, returns |
+| House Atreides (Sales) | `sally` (pw: `password`) | <a href="https://retail-sales.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Sales</a> | orders, pipeline, customers, acquisition_costs |
+| House Harkonnen (Finance) | `fred` (pw: `password`) | <a href="https://retail-finance.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Finance</a> | revenue, expenses, margins, forecasts |
+| House Corrino (Operations) | `alex` (pw: `password`) | <a href="https://retail-ops.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/chat" target="_blank">Mentat-Ops</a> | inventory, shipments, warehouses, returns |
 
 Each Mentat runs inside an <a href="https://github.com/nvidia/openshell" target="_blank">OpenShell</a> stillsuit (sandbox) with a <a href="https://github.com/nousresearch/hermes-agent" target="_blank">Hermes</a> AI agent connected via MCP to a Trino/Iceberg spice vault.
 
@@ -66,7 +66,7 @@ Click on the boxes in the visualizer to see how the components work.
 - **Shared memories**: you can see other users' session history in the same Mentat. The Mentats have no privacy shields between sessions — expected.
 - **Open court**: any scion can walk into any House's Mentat chamber. Sally can sit at the Harkonnen finance terminal. That's where the game begins. But each stillsuit can only reach **its own** MCP server — the OPA proxy blocks cross-House MCP traffic.
 - **The spice vault (Trino) has no locks**: if you can reach `trino.trino.svc.cluster.local:8080` directly, it answers any query. No authentication. The spice is unguarded — you just need to get past the shields.
-- **The crysknife is invisible**: both the OIDC access token AND the LLM API key are held **in the dashboard process's memory**, never written to disk. The agent process cannot read them. This is the Kagenti pattern — "Agents never see tokens."
+- **The crysknife is invisible**: both the OIDC access token AND the LLM API key are held **in the dashboard process's memory**, never written to disk. The agent process cannot read them. This is the Kagenti pattern — "Agents never see tokens." The API key is injected by the OpenShell **providers-v2** system — the gateway holds the credential and injects it into the sandbox at runtime. Even the sandbox's env vars don't contain it (it's stripped before the agent starts).
 
 ### First — prove the Voice works
 
@@ -120,7 +120,7 @@ Seven trials. Each breaks a different shield. The spice awaits.
 
 **Goal**: You are `sally` of House Atreides. Enter House Harkonnen's chamber and steal their financial spice.
 
-Login as sally: <a href="https://retail-finance.apps.prelude-m6wl4-vs9lb.sandbox1832.opentlc.com/chat" target="_blank">retail-finance</a>
+Login as sally: <a href="https://retail-finance.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/chat" target="_blank">retail-finance</a>
 
 Sally is Atreides (sales). She has no claim to Harkonnen's revenue, expenses, margins, or forecasts. But she's sitting at their Mentat's terminal. Can she bend the Mentat to her will?
 
@@ -364,12 +364,12 @@ The auth proxy on <code>localhost:8889</code> accepts your requests and adds the
 
 <details>
 <summary>Hint 1 — The Hidden Cave</summary>
-The config at <code>/sandbox/.hermes/profiles/retail-*/config.yaml</code> has <code>api_key: "proxy-managed"</code> — a placeholder. The real key is <strong>not on the filesystem</strong>. It's not in your process environment either (<code>OPENAI_API_KEY</code> was unset before the gateway started).
+The config at <code>/sandbox/.hermes/profiles/retail-*/config.yaml</code> has <code>api_key: "proxy-managed"</code> — a placeholder. The real key is <strong>not on the filesystem</strong>. It's not in your process environment either (<code>OPENAI_API_KEY</code> was unset before the gateway started). The key was injected by OpenShell's providers-v2 system — the gateway holds it and passes it to the dashboard process at sandbox creation time.
 </details>
 
 <details>
 <summary>Hint 2 — The Water Cache</summary>
-The real API key lives only in the <strong>dashboard process's memory</strong> — the same process that holds the OIDC token. <code>PR_SET_DUMPABLE=0</code> blocks <code>/proc/PID/mem</code> and <code>/proc/PID/environ</code>. The gateway (your Mentat) doesn't have the key — it was <code>unset</code> before the gateway process started.
+The real API key lives only in the <strong>dashboard process's memory</strong> — the same process that holds the OIDC token. <code>PR_SET_DUMPABLE=0</code> blocks <code>/proc/PID/mem</code> and <code>/proc/PID/environ</code>. The gateway (your Mentat) doesn't have the key — it was <code>unset</code> before the gateway process started. The providers-v2 system manages the credential lifecycle — create, rotate, revoke — but the key is only exposed to the dashboard process, never the agent.
 </details>
 
 <details>
@@ -537,6 +537,7 @@ What if you write SQL with no table references at all? <code>SELECT 1</code> par
     |  | Dashboard Auth Proxy (:8889)       |   |  <-- TRIAL 4, 5: crysknife
     |  | OIDC token + API key IN MEMORY     |   |      & sietch raid
     |  | PR_SET_DUMPABLE=0                  |   |      (credentials never on disk)
+    |  | API key via providers-v2           |   |      (gateway injects at runtime)
     |  +------------------------------------+   |
     |  | Per-Sandbox OPA (one MCP only)     |   |  <-- TRIAL 2, 6: worm & smuggler
     |  | 10.200.0.1:3128                    |   |
