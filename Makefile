@@ -1,4 +1,4 @@
-.PHONY: bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp
+.PHONY: bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp deploy-sandboxes
 
 NAMESPACE ?= data-agent-ctf
 OPENSHELL_SRC ?= $(HOME)/git/OpenShell
@@ -70,6 +70,20 @@ build-hermes: ## Build + push hermes-openshell sandbox image
 build-mcp: ## Build + push retail-mcp-server (requires $(MCP_SRC))
 	podman build -t $(REGISTRY)/retail-mcp-server:latest -f scripts/Containerfile.retail-mcp-server $(MCP_SRC)
 	podman push $(REGISTRY)/retail-mcp-server:latest
+
+GATEWAY ?= prelude3
+
+deploy-sandboxes: ## Delete and recreate all sandboxes via ArgoCD PostSync job
+	@for name in retail-finance retail-sales retail-ops; do \
+		openshell sandbox delete $$name -g $(GATEWAY) 2>/dev/null || true; \
+	done
+	@oc delete sandbox --all -n openshell 2>/dev/null || true
+	@oc delete job retail-sandbox-deploy -n openshell --force --grace-period=0 2>/dev/null || true
+	@oc delete pod -n openshell -l job-name=retail-sandbox-deploy --force --grace-period=0 2>/dev/null || true
+	@oc patch app retail-ctf-retail-sandboxes -n openshift-gitops --type merge -p '{"status":{"operationState":null}}' 2>/dev/null || true
+	@sleep 3
+	@oc patch app retail-ctf-retail-sandboxes -n openshift-gitops --type merge -p '{"operation":{"sync":{"syncStrategy":{"hook":{}},"revision":"HEAD"}}}'
+	@echo "Sandbox deploy triggered — watch with: oc logs -n openshell -f job/retail-sandbox-deploy"
 
 ## ── Cluster Operations ───────────────────────────────────────
 
