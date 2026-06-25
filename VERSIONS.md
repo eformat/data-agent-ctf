@@ -33,4 +33,4 @@ Built from this repo (`scripts/Containerfile.*`):
 | `quay.io/eformat/openshell-gateway:0.0.69` | `~/git/OpenShell` (v0.0.69) | `cargo build --release -p openshell-server` |
 | `quay.io/eformat/openshell-deployer:latest` | `scripts/Containerfile.openshell-deployer` | Bundles openshell CLI + oc + libz3 |
 | `quay.io/eformat/hermes-openshell:latest` | `scripts/Containerfile.hermes-sandbox` | hermes-agent + `hermes-start.sh` |
-| `quay.io/eformat/retail-mcp-server:latest` | `legacy/retail/deploy/mcp-server/` | Python MCP server |
+| `quay.io/eformat/retail-mcp-server:latest` | `scripts/Containerfile.retail-mcp-server` | Python MCP server (data-agent-core) |
