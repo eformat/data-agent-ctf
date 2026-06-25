@@ -118,32 +118,54 @@ data:
     echo "=== Checking gateway ==="
     openshell status -g "$GATEWAY_NAME"
 
-    echo "=== Waiting for sandboxes ==="
+    APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+
+    if [ -z "${KEYCLOAK_ISSUER:-}" ]; then
+      KC_HOST=$(oc get route keycloak -n "${NAMESPACE}" -o jsonpath='{.spec.host}' 2>/dev/null)
+      KEYCLOAK_ISSUER="https://${KC_HOST}/realms/retail-ctf"
+    fi
+    echo "  KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}"
+    echo "  APPS_DOMAIN=${APPS_DOMAIN}"
+
     for dept in finance sales ops; do
       name="retail-${dept}"
-      echo "Waiting for ${name}..."
+      echo "=== Deploying ${name} ==="
+
+      # Generate per-department OPA policy
+      sed "/retail-.*-mcp/{/retail-${dept}-mcp/!{N;d;}}" \
+          /policy/policy-retail.yaml > "/tmp/policy-${dept}.yaml"
+
+      # Delete existing sandbox (ignore if not found)
+      openshell sandbox delete "$name" -g "$GATEWAY_NAME" 2>/dev/null || true
+      sleep 3
+
+      # Create sandbox with policy and hermes startup
+      openshell sandbox create -g "$GATEWAY_NAME" \
+        --name "$name" \
+        --from "$HERMES_IMAGE" \
+        --policy "/tmp/policy-${dept}.yaml" \
+        --no-tty \
+        -- env OPENAI_API_KEY="${OPENAI_API_KEY}" \
+               GATEWAY_ALLOW_ALL_USERS=true \
+               HERMES_ACTIVE_PROFILE="retail-${dept}" \
+               HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
+               HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
+               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
+               /usr/local/bin/hermes-start.sh
+
+      # Wait for Ready
       for i in $(seq 1 40); do
         status=$(openshell sandbox list -g "$GATEWAY_NAME" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep "$name" | awk '{print $NF}' || true)
         if [ "$status" = "Ready" ]; then echo "  ${name}: Ready"; break; fi
         echo "  ${name}: ${status:-not found} (${i}/40)"
         sleep 10
       done
-    done
 
-    echo "=== Registering policies ==="
-    for dept in finance sales ops; do
-      name="retail-${dept}"
-      # Generate per-department OPA policy (only this dept's MCP server)
-      sed "/retail-.*-mcp/{/retail-${dept}-mcp/!{N;d;}}" \
-          /policy/policy-retail.yaml > "/tmp/policy-${dept}.yaml"
-      echo "  Uploading policy for ${name}..."
-      openshell sandbox exec "$name" -g "$GATEWAY_NAME" --no-tty -- true 2>/dev/null || true
-    done
-
-    echo "=== Exposing services ==="
-    for dept in finance sales ops; do
-      name="retail-${dept}"
+      # Expose service
       openshell service expose "$name" 9119 -g "$GATEWAY_NAME" 2>&1 || true
+
+      rm -f "/tmp/policy-${dept}.yaml"
+      echo "  ${name}: https://${name}.${APPS_DOMAIN}"
     done
 
-    echo "=== Done ==="
+    echo "=== All sandboxes deployed ==="
