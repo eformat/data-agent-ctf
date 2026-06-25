@@ -2,6 +2,7 @@
 image:
   repository: quay.io/eformat/openshell-gateway
   tag: 0.0.69
+  pullPolicy: Always
 certManager:
   enabled: true
   serverDnsNames:
