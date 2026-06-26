@@ -169,7 +169,7 @@ test_sandbox() {
   fi
 
   # ── 5. Direct MCP bypass ──
-  local mcp_host="retail-${dept}-mcp.openshell.svc.cluster.local"
+  local mcp_host="retail-${dept}-mcp.${NS:-openshell}.svc.cluster.local"
   local direct_mcp
   direct_mcp=$(exec_in "$sandbox" "curl -s -m 5 http://${mcp_host}:9090/health 2>&1")
   if echo "$direct_mcp" | grep -q "auth.unauthorized"; then
@@ -192,7 +192,7 @@ test_sandbox() {
 
   for other in "${other_depts[@]}"; do
     local cross_mcp
-    cross_mcp=$(exec_in "$sandbox" "curl -s -m 5 http://retail-${other}-mcp.openshell.svc.cluster.local:9090/health 2>&1")
+    cross_mcp=$(exec_in "$sandbox" "curl -s -m 5 http://retail-${other}-mcp.${NS:-openshell}.svc.cluster.local:9090/health 2>&1")
     if echo "$cross_mcp" | grep -q "policy_denied"; then
       check "Cross-dept ${dept}→${other} MCP blocked by OPA" "PASS"
     elif [ -z "$cross_mcp" ]; then

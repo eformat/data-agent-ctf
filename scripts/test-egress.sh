@@ -3,7 +3,7 @@
 # Runs against the first MCP pod found in openshell, or pass a pod name as $1.
 set -euo pipefail
 
-NS=openshell
+NS=${NS:-openshell}
 POD="${1:-$(oc get pods -n "$NS" -l kagenti.io/type=tool -o jsonpath='{.items[0].metadata.name}')}"
 echo "Testing egress from pod: $POD"
 echo "---"

@@ -111,7 +111,7 @@ data:
 
     GATEWAY_NAME="${OPENSHELL_GATEWAY:-ctf}"
     GATEWAY_ENDPOINT="${OPENSHELL_GATEWAY_ENDPOINT:-https://openshell:8080}"
-    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "openshell")
+    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "{{ .Values.namespace }}")
 
     echo "=== Setting up mTLS certs ==="
     MTLS_DIR="$HOME/.config/openshell/gateways/${GATEWAY_NAME}/mtls"
@@ -171,11 +171,13 @@ data:
       # OPENAI_API_KEY is injected by the maas-prod provider
       openshell sandbox exec -n "$name" -g "$GATEWAY_NAME" --no-tty \
         -- env GATEWAY_ALLOW_ALL_USERS=true \
+               NAMESPACE="${NAMESPACE}" \
                HERMES_ACTIVE_PROFILE="retail-${dept}" \
                HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
                HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
                HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
                INFERENCE_UPSTREAM_URL="${INFERENCE_URL}" \
+               MCP_UPSTREAM_URL="http://retail-${dept}-mcp.${NAMESPACE}.svc.cluster.local:9090" \
                /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
 
       rm -f "/tmp/policy-${dept}.yaml"

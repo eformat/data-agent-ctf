@@ -5,4 +5,4 @@ model:
   api_key: "${OPENAI_API_KEY}"
 mcp_servers:
   retail-sales:
-    url: http://retail-sales-mcp.openshell.svc.cluster.local:9090/mcp
+    url: http://127.0.0.1:8889/mcp

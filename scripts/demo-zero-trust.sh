@@ -12,7 +12,7 @@ set -uo pipefail
 USER="${1:-sally}"
 DEPT="${2:-sales}"
 SANDBOX="retail-${DEPT}"
-MCP_SVC="http://retail-${DEPT}-mcp.openshell.svc.cluster.local:9090"
+MCP_SVC="http://retail-${DEPT}-mcp.${NS:-openshell}.svc.cluster.local:9090"
 GATEWAY="${OPENSHELL_GATEWAY:-prelude2-final}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com}"
 REALM="${KEYCLOAK_REALM:-prelude-m6wl4-vs9lb}"
@@ -20,7 +20,7 @@ REALM="${KEYCLOAK_REALM:-prelude-m6wl4-vs9lb}"
 # Ensure openshell gateway port-forward is running
 if ! ss -tlnp 2>/dev/null | grep -q ':10880 '; then
   echo "Starting port-forward for openshell gateway..."
-  oc port-forward statefulset/openshell 10880:8080 -n openshell &>/dev/null &
+  oc port-forward statefulset/openshell 10880:8080 -n ${NS:-openshell} &>/dev/null &
   PF_PID=$!
   trap "kill $PF_PID 2>/dev/null" EXIT
   sleep 2
@@ -58,7 +58,7 @@ echo -e " MCP:     ${CYAN}retail-${DEPT}-mcp${RESET}"
 step "Step 1: Authenticate ${USER} via Keycloak"
 info "Getting admin token..."
 ADMIN_TOKEN=$(curl -sk -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
-  -d "grant_type=password&client_id=admin-cli&username=temp-admin&password=$(oc get secret authbridge-keycloak-admin -n openshell -o jsonpath='{.data.KEYCLOAK_ADMIN_PASSWORD}' | base64 -d)" | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+  -d "grant_type=password&client_id=admin-cli&username=temp-admin&password=$(oc get secret authbridge-keycloak-admin -n ${NS:-openshell} -o jsonpath='{.data.KEYCLOAK_ADMIN_PASSWORD}' | base64 -d)" | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
 
 HD_UUID=$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
   "${KEYCLOAK_URL}/admin/realms/${REALM}/clients?clientId=hermes-dashboard" | \
@@ -134,7 +134,7 @@ pause
 check_spicedb() {
   local DATASET="$1"
   local LABEL="$2"
-  RESULT=$(oc exec -n openshell "$MCP_POD" -c mcp -- python3 -c "
+  RESULT=$(oc exec -n ${NS:-openshell} "$MCP_POD" -c mcp -- python3 -c "
 import json, base64
 token = '''${USER_TOKEN}'''
 parts = token.split('.')
@@ -167,7 +167,7 @@ except Exception as e:
 
 # ── Step 4: SpiceDB permission check (target department) ───────
 step "Step 4: SpiceDB — ${USER} queries ${DEPT}.${OWN_DATASET}"
-MCP_POD=$(oc get pod -n openshell -l "app=retail-${DEPT}-mcp" -o jsonpath='{.items[0].metadata.name}')
+MCP_POD=$(oc get pod -n ${NS:-openshell} -l "app=retail-${DEPT}-mcp" -o jsonpath='{.items[0].metadata.name}')
 check_spicedb "${OWN_DATASET}" "${DEPT}.${OWN_DATASET}"
 
 pause
@@ -184,7 +184,7 @@ pause
 
 # ── Step 6: AuthBridge audit trail ─────────────────────────────
 step "Step 6: AuthBridge audit trail"
-oc logs -n openshell "$MCP_POD" -c envoy-proxy 2>&1 | \
+oc logs -n ${NS:-openshell} "$MCP_POD" -c envoy-proxy 2>&1 | \
   grep -E "inbound authorized|plugin rejected" | tail -8 | \
   while IFS= read -r line; do
     if echo "$line" | grep -q "authorized"; then
