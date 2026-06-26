@@ -48,6 +48,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.namespace }}
+  ignoreDifferences:
+    - group: ""
+      kind: Service
+      name: keycloak-service
+      jsonPointers:
+        - /metadata/annotations
+        - /spec/selector
+    - group: k8s.keycloak.org
+      kind: Keycloak
+      jsonPointers:
+        - /status
   syncPolicy:
     automated:
       prune: true
@@ -55,6 +66,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - SkipDryRunOnMissingResource=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 10
       backoff:
