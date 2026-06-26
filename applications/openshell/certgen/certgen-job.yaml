@@ -23,17 +23,23 @@ spec:
               NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
               APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
 
-              echo "=== Waiting for server TLS secret ==="
-              for i in $(seq 1 30); do
-                if oc get secret openshell-server-tls -n "$NAMESPACE" 2>/dev/null | grep -q openshell; then
-                  echo "Secret ready"
+              echo "=== Waiting for server TLS CA cert ==="
+              CA=""
+              for i in $(seq 1 60); do
+                CA=$(oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d 2>/dev/null || true)
+                if [ -n "$CA" ] && echo "$CA" | grep -q "BEGIN CERTIFICATE"; then
+                  echo "CA cert ready"
                   break
                 fi
-                echo "  waiting... ($i/30)"
+                echo "  waiting for CA cert... ($i/60)"
                 sleep 5
               done
 
-              CA=$(oc get secret openshell-server-tls -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d)
+              if [ -z "$CA" ] || ! echo "$CA" | grep -q "BEGIN CERTIFICATE"; then
+                echo "ERROR: CA cert not available after 5 minutes — skipping route patch"
+                exit 1
+              fi
+
               CA_JSON=$(echo "$CA" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 
               echo "=== Patching routes ==="
