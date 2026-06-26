@@ -62,10 +62,13 @@ def discover():
     """Auto-discover endpoints from the cluster."""
     cfg = {}
     cfg["apps_domain"] = oc("get", "ingresses.config", "cluster", "-o", "jsonpath={.spec.domain}")
-    cfg["kc_host"] = oc("get", "route", "keycloak", "-n", "openshell", "-o", "jsonpath={.spec.host}")
+    cfg["namespace"] = os.environ.get("NAMESPACE", oc("get", "app", "retail-ctf", "-n", "openshift-gitops",
+        "-o", "jsonpath={.spec.source.helm.releaseName}").strip() and
+        oc("get", "app", "retail-ctf", "-n", "openshift-gitops",
+           "-o", "jsonpath={.spec.destination.namespace}"))
+    cfg["kc_host"] = oc("get", "route", "keycloak", "-n", cfg["namespace"], "-o", "jsonpath={.spec.host}")
     cfg["kc_url"] = f"https://{cfg['kc_host']}"
     cfg["realm"] = "retail-ctf"
-    cfg["namespace"] = "openshell"
 
     # Get admin credentials from initial-admin secret
     cfg["admin_user"] = base64.b64decode(
