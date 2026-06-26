@@ -110,7 +110,10 @@ git commit -am "Configure for new-cluster"
 git push -u origin new-cluster
 make bootstrap
 
-# 5. Wait for sync (~10 min), then deploy sandboxes and test
+# 5  Wait for application sync (~10 min), then you can run e2e test - should see 10/15 tests pass
+make test
+
+# 6. Deploy sandboxes and test - should see 15/15 tests pass
 make deploy-sandboxes
 make test
 ```
