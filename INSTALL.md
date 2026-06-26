@@ -108,7 +108,7 @@ SOPS_AGE_KEY_FILE=age-key.txt sops -e --age <AGE_PUBLIC_KEY> /tmp/secrets-dec.en
 # 4. Commit, push, deploy
 git commit -am "Configure for new-cluster"
 git push -u origin new-cluster
-./scripts/bootstrap.sh --branch new-cluster
+make bootstrap
 
 # 5. Wait for sync (~10 min), then deploy sandboxes and test
 make deploy-sandboxes
