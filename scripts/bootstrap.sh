@@ -125,11 +125,20 @@ if $TENANT_ARGOCD; then
   done
 fi
 
-# 6. Apply app-of-apps
+# 6. Auto-detect cluster domain and update values
+echo "--- Configuring cluster values ---"
+APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+echo "  APPS_DOMAIN=${APPS_DOMAIN}"
+sed -i "s|^appsDomain:.*|appsDomain: ${APPS_DOMAIN}|" "${REPO_DIR}/app-of-apps/values.yaml"
+sed -i "s|^namespace:.*|namespace: ${NAMESPACE}|" "${REPO_DIR}/app-of-apps/values.yaml"
+sed -i "s|^gitRepo:.*|gitRepo: ${GIT_REPO}|" "${REPO_DIR}/app-of-apps/values.yaml"
+sed -i "s|^gitRevision:.*|gitRevision: ${GIT_BRANCH}|" "${REPO_DIR}/app-of-apps/values.yaml"
+
+# 7. Apply app-of-apps
 echo "--- Deploying app-of-apps ---"
 sed -e "s|namespace: openshift-gitops|namespace: ${ARGOCD_NS}|" \
-    -e "s|namespace: data-agent-ctf|namespace: ${NAMESPACE}|" \
-    -e "s|repoURL: .*|repoURL: ${GIT_REPO}|" \
+    -e "s|namespace: openshell|namespace: ${NAMESPACE}|" \
+    -e "s|repoURL: .*data-agent-ctf.*|repoURL: ${GIT_REPO}|" \
     -e "s|targetRevision: .*|targetRevision: ${GIT_BRANCH}|" \
     "${REPO_DIR}/app-of-apps/retail-ctf.yaml" | oc apply -f -
 

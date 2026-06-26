@@ -10,7 +10,7 @@ metadata:
   namespace: openshell
 data:
   SPIRE_ENABLED: "true"
-  KEYCLOAK_URL: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+  KEYCLOAK_URL: {{ include "retail-mcp.keycloakUrl" . | quote }}
   KEYCLOAK_REALM: "retail-ctf"
   KEYCLOAK_TOKEN_EXCHANGE_ENABLED: "true"
   KEYCLOAK_CLIENT_REGISTRATION_ENABLED: "true"
@@ -51,8 +51,8 @@ data:
         plugins:
           - name: jwt-validation
             config:
-              issuer: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
-              keycloak_url: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
+              issuer: {{ include "retail-mcp.keycloakIssuer" . | quote }}
+              keycloak_url: {{ include "retail-mcp.keycloakUrl" . | quote }}
               keycloak_realm: "retail-ctf"
     routes:
       file: "/etc/authproxy/routes.yaml"
@@ -66,8 +66,8 @@ metadata:
   namespace: openshell
 type: Opaque
 stringData:
-  TOKEN_URL: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf/protocol/openid-connect/token"
-  ISSUER: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
+  TOKEN_URL: {{ include "retail-mcp.keycloakTokenUrl" . | quote }}
+  ISSUER: {{ include "retail-mcp.keycloakIssuer" . | quote }}
   TARGET_AUDIENCE: "retail-mcp"
   TARGET_SCOPES: "openid"
 

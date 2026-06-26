@@ -11,12 +11,12 @@ credentials:
     auth_style: bearer
     header_name: authorization
 endpoints:
-  - host: maas.apps.ocp.cloud.rhai-tmm.dev
+  - host: {{ .Values.inference.host }}
     port: 443
     protocol: rest
     access: read-write
     enforcement: enforce
-  - host: maas.apps.ocp.cloud.rhai-tmm.dev
+  - host: {{ .Values.inference.host }}
     port: 80
     protocol: rest
     access: read-write

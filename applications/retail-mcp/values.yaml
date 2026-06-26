@@ -1,0 +1,4 @@
+# Injected by parent app-of-apps chart
+appsDomain: apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+namespace: openshell
+realmName: retail-ctf

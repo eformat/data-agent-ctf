@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-policy
+data:
+  policy-retail.yaml: |
+    {{- tpl (.Files.Get "files/policy-retail.yaml") . | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-providers
+data:
+  maas-inference.yaml: |
+    {{- tpl (.Files.Get "files/maas-inference.yaml") . | nindent 4 }}

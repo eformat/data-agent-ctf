@@ -2,21 +2,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-cert-manager
+  name: retail-ctf-retail-mcp
   namespace: openshift-gitops
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "4"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
-    path: applications/cert-manager
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
+    path: applications/retail-mcp
+    helm:
+      valuesObject:
+        appsDomain: {{ .Values.appsDomain }}
+        namespace: {{ .Values.namespace }}
+        realmName: {{ .Values.realmName }}
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true

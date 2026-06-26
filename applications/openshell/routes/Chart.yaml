@@ -1,0 +1,5 @@
+apiVersion: v2
+name: openshell-routes
+description: OpenShell sandbox reencrypt routes
+version: 1.0.0
+type: application

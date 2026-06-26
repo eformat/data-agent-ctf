@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-spicedb
+  name: retail-ctf-minio
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "1"
@@ -11,17 +11,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
-    path: applications/spicedb
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
+    path: applications/minio
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
-  ignoreDifferences:
-    - group: authzed.com
-      kind: SpiceDBCluster
-      jsonPointers:
-        - /spec/config/datastoreBootstrapFiles
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true

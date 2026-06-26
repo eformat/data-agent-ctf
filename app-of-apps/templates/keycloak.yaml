@@ -11,12 +11,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/keycloak/base
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true
@@ -42,12 +42,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/keycloak
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true

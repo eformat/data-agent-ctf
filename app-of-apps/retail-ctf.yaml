@@ -11,10 +11,9 @@ spec:
   source:
     repoURL: https://github.com/eformat/data-agent-ctf.git
     targetRevision: main
-    path: app-of-apps/apps
-    directory:
-      recurse: false
-      include: "*.yaml"
+    path: app-of-apps
+    helm:
+      releaseName: retail-ctf
   destination:
     server: https://kubernetes.default.svc
     namespace: openshell

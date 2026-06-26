@@ -11,12 +11,20 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/retail-sandboxes
+    helm:
+      valuesObject:
+        appsDomain: {{ .Values.appsDomain }}
+        namespace: {{ .Values.namespace }}
+        realmName: {{ .Values.realmName }}
+        inference:
+          host: {{ .Values.inference.host }}
+          path: {{ .Values.inference.path }}
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true

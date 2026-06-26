@@ -36,7 +36,7 @@ PUBLIC_URL="${HERMES_PUBLIC_URL:-https://retail-hermes.apps.prelude-m6wl4-vs9lb.
 # Derive department from active profile for MCP upstream URL
 DEPT=$(echo "$ACTIVE" | sed 's/retail-//')
 export MCP_UPSTREAM_URL="http://retail-${DEPT}-mcp.openshell.svc.cluster.local:9090"
-export INFERENCE_UPSTREAM_URL="http://maas.apps.ocp.cloud.rhai-tmm.dev/prelude-maas/qwen36-27b"
+export INFERENCE_UPSTREAM_URL="${INFERENCE_UPSTREAM_URL:-http://maas.apps.ocp.cloud.rhai-tmm.dev/prelude-maas/qwen36-27b}"
 export MCP_PROXY_PORT=8889
 
 if [ -n "${OPENAI_API_KEY:-}" ]; then

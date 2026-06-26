@@ -3,23 +3,8 @@ image:
   repository: quay.io/eformat/openshell-gateway
   tag: v0.0.69
   pullPolicy: Always
-certManager:
-  enabled: true
-  serverDnsNames:
-    - openshell
-    - openshell.openshell.svc
-    - openshell.openshell.svc.cluster.local
-    - localhost
-    - openshell.localhost
-    - "*.openshell.localhost"
-    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
-    - openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
 grpcRoute:
   enabled: false
-pkiInitJob:
-  serverDnsNames:
-    - "*.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
-    - openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
 podSecurityContext:
   fsGroup: null
 securityContext:
@@ -30,7 +15,6 @@ server:
   tls:
     clientCaSecretName: ""
   oidc:
-    issuer: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com/realms/retail-ctf"
     audience: "openshell-cli"
     rolesClaim: "realm_access.roles"
 service:

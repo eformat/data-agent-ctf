@@ -2,23 +2,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-secrets
+  name: retail-ctf-spicedb
   namespace: openshift-gitops
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "1"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
-    path: applications/secrets
-    plugin:
-      name: sops-age-kustomize
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
+    path: applications/spicedb
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
+  ignoreDifferences:
+    - group: authzed.com
+      kind: SpiceDBCluster
+      jsonPointers:
+        - /spec/config/datastoreBootstrapFiles
   syncPolicy:
     automated:
       prune: true

@@ -1,0 +1,15 @@
+# ── Cluster-Specific Configuration ──────────────────────────────
+# Edit these values for your cluster. Everything else derives from them.
+
+appsDomain: apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com
+namespace: openshell
+realmName: retail-ctf
+
+# LLM inference endpoint
+inference:
+  host: maas.apps.ocp.cloud.rhai-tmm.dev
+  path: /prelude-maas/qwen36-27b
+
+# Git repo (for ArgoCD source references)
+gitRepo: https://github.com/eformat/data-agent-ctf.git
+gitRevision: main

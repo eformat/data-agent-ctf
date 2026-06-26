@@ -11,12 +11,38 @@ agent credential isolation on OpenShift.
 git clone https://github.com/eformat/data-agent-ctf.git
 cd data-agent-ctf
 
-# 2. Bootstrap (one command)
-./scripts/bootstrap.sh
+# 2. Configure for your cluster (edit ONE file)
+vi app-of-apps/values.yaml
 
-# 3. Wait for ArgoCD to sync all apps (~10 min)
+# 3. Bootstrap (auto-detects cluster domain if not set)
+make bootstrap
+
+# 4. Wait for ArgoCD to sync all apps (~10 min)
 oc get applications -n openshift-gitops | grep retail-ctf
+
+# 5. Deploy sandboxes
+make deploy-sandboxes
+
+# 6. Run tests
+make test
 ```
+
+## Cluster Configuration
+
+All cluster-specific values live in **one file**: `app-of-apps/values.yaml`
+
+```yaml
+appsDomain: apps.my-cluster.example.com    # oc get ingresses.config cluster -o jsonpath='{.spec.domain}'
+namespace: openshell
+realmName: retail-ctf
+inference:
+  host: maas.apps.ocp.cloud.rhai-tmm.dev   # your LLM inference endpoint
+  path: /prelude-maas/qwen36-27b
+gitRepo: https://github.com/eformat/data-agent-ctf.git
+gitRevision: main
+```
+
+The bootstrap script auto-detects `appsDomain` from the cluster if not already configured.
 
 ## Deployment Modes
 
@@ -37,7 +63,7 @@ oc get applications -n openshift-gitops | grep retail-ctf
 ## Architecture
 
 ```
-ArgoCD App-of-Apps
+ArgoCD App-of-Apps (Helm chart — app-of-apps/)
 ├── cert-manager (operator)
 ├── keycloak (operator + instance + realm/users/clients Job)
 ├── spicedb (operator + instance + schema/fixtures Job)
@@ -45,8 +71,9 @@ ArgoCD App-of-Apps
 ├── trino (Nessie + query engine + tables/data Job)
 ├── kagenti (ZTWIM + operator)
 ├── openshell (gateway + routes)
+├── console-plugin (SpiceDB authz UI)
 ├── retail-mcp (3x MCP servers + AuthBridge sidecars)
-└── retail-sandboxes (3x Hermes agent sandboxes)
+└── retail-sandboxes (3x Hermes agent sandboxes + deploy Job)
 ```
 
 ## Secrets
@@ -54,25 +81,29 @@ ArgoCD App-of-Apps
 Encrypted with [sops](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age).
 
 ```bash
-# Generate key (once)
-age-keygen > age-key.txt  # Keep safe, gitignored
+# Decrypt
+SOPS_AGE_KEY_FILE=age-key.txt sops -d applications/secrets/secrets.enc.yaml
 
-# Encrypt a secret
-sops --encrypt --in-place applications/keycloak/config/realm-secret.enc.yaml
-
-# Decrypt (for editing)
-sops --decrypt applications/keycloak/config/realm-secret.enc.yaml
+# Edit + re-encrypt
+cp secrets-dec.yaml secrets-dec.enc.yaml  # filename must match .enc.yaml
+SOPS_AGE_KEY_FILE=age-key.txt sops -e --age <AGE_PUBLIC_KEY> secrets-dec.enc.yaml > applications/secrets/secrets.enc.yaml
 ```
 
-## Values
+## Makefile Targets
 
-Edit `values.yaml` to configure:
+```bash
+make bootstrap        # Deploy everything
+make test             # Run E2E MCP pipeline tests (15 checks)
+make deploy-sandboxes # Recreate Hermes sandboxes
+make build-all        # Build and push all container images
+make build-hermes     # Build hermes-openshell image
+make build-gateway    # Build openshell-gateway image
+make build-deployer   # Build openshell-deployer image
+make build-mcp        # Build retail-mcp-server image
+make validate         # Validate kustomize builds
+make status           # Show deployment status
+```
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `namespace` | `data-agent-ctf` | Target namespace |
-| `singleNamespace` | `true` | All components in one namespace |
-| `tenantArgoCD.enabled` | `false` | Deploy namespace-scoped ArgoCD |
-| `tolerateGPU` | `false` | Schedule on GPU nodes |
-| `inference.url` | MaaS endpoint | LLM inference URL |
-| `inference.model` | `qwen36-27b` | Model name |
+## Versions
+
+See [VERSIONS.md](VERSIONS.md) for all component versions and image sources.

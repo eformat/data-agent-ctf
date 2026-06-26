@@ -113,9 +113,9 @@ spec:
         valuesObject:
           openshift: true
           keycloak:
-            publicUrl: "https://keycloak-openshell.apps.prelude-m6wl4-jf54l.sandbox1832.opentlc.com"
-            realm: retail-ctf
-            namespace: openshell
+            publicUrl: {{ include "ctf.keycloakUrl" . | quote }}
+            realm: {{ .Values.realmName }}
+            namespace: {{ .Values.namespace }}
           components:
             agentOperator:
               enabled: true

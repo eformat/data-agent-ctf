@@ -11,12 +11,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/openshell/crd
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true
@@ -49,20 +49,42 @@ spec:
         releaseName: openshell
         valueFiles:
           - $values/applications/openshell/helm-values/values.yaml
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
+        valuesObject:
+          certManager:
+            enabled: true
+            serverDnsNames:
+              - openshell
+              - openshell.{{ .Values.namespace }}.svc
+              - openshell.{{ .Values.namespace }}.svc.cluster.local
+              - localhost
+              - openshell.localhost
+              - "*.openshell.localhost"
+              - "*.{{ .Values.appsDomain }}"
+              - openshell.{{ .Values.appsDomain }}
+          pkiInitJob:
+            serverDnsNames:
+              - "*.{{ .Values.appsDomain }}"
+              - openshell.{{ .Values.appsDomain }}
+          server:
+            oidc:
+              issuer: {{ include "ctf.keycloakIssuer" . | quote }}
+    - repoURL: {{ .Values.gitRepo }}
+      targetRevision: {{ .Values.gitRevision }}
       ref: values
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
+    - repoURL: {{ .Values.gitRepo }}
+      targetRevision: {{ .Values.gitRevision }}
       path: applications/openshell/certgen
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
+    - repoURL: {{ .Values.gitRepo }}
+      targetRevision: {{ .Values.gitRevision }}
       path: applications/openshell/routes
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
+      helm:
+        valuesObject:
+          appsDomain: {{ .Values.appsDomain }}
+    - repoURL: {{ .Values.gitRepo }}
+      targetRevision: {{ .Values.gitRevision }}
       path: applications/openshell/netpol
-    - repoURL: https://github.com/eformat/data-agent-ctf.git
-      targetRevision: main
+    - repoURL: {{ .Values.gitRepo }}
+      targetRevision: {{ .Values.gitRevision }}
       path: applications/openshell/scc
   ignoreDifferences:
     - group: route.openshift.io
@@ -72,7 +94,7 @@ spec:
         - /spec/host
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   syncPolicy:
     automated:
       prune: true
