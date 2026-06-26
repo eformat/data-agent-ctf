@@ -14,7 +14,10 @@ rules:
     verbs: ["get"]
   - apiGroups: ["route.openshift.io"]
     resources: ["routes"]
-    verbs: ["get", "patch"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes/custom-host"]
+    verbs: ["create", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
