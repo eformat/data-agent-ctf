@@ -11,7 +11,7 @@ metadata:
   namespace: rhbk-operator
 spec:
   targetNamespaces:
-    - openshell
+    - data-agent-ctf
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -25,11 +25,25 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: cnpg-operator
+  namespace: cnpg-operator
+spec:
+  targetNamespaces:
+    - data-agent-ctf
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: cloudnative-pg
-  namespace: openshift-operators
+  namespace: cnpg-operator
 spec:
   channel: stable-v1
   installPlanApproval: Automatic
