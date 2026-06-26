@@ -65,7 +65,9 @@ envFrom:
   - secretRef:
       name: trino-credentials
 
-serviceAccountName: trino
+serviceAccount:
+  create: false
+  name: trino
 
 securityContext:
   runAsUser: 1000
