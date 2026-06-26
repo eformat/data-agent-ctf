@@ -5,8 +5,10 @@ OPENSHELL_SRC ?= $(HOME)/git/OpenShell
 MCP_SRC ?= $(HOME)/git/data-agent-template
 REGISTRY ?= quay.io/eformat
 
+BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+
 bootstrap: ## Deploy everything to cluster (one command)
-	./scripts/bootstrap.sh --namespace $(NAMESPACE)
+	./scripts/bootstrap.sh --namespace $(NAMESPACE) --branch $(BRANCH)
 
 bootstrap-gpu: ## Deploy with GPU node toleration
 	./scripts/bootstrap.sh --namespace $(NAMESPACE) --tolerate-gpu

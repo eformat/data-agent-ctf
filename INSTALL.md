@@ -14,8 +14,8 @@ cd data-agent-ctf
 # 2. Configure for your cluster (edit ONE file)
 vi app-of-apps/values.yaml
 
-# 3. Bootstrap (pass --branch if not on main)
-./scripts/bootstrap.sh --branch $(git branch --show-current)
+# 3. Bootstrap (auto-detects branch and cluster domain)
+make bootstrap
 
 # 4. Wait for ArgoCD to sync all apps (~10 min)
 oc get applications -n openshift-gitops | grep retail-ctf
@@ -108,7 +108,7 @@ SOPS_AGE_KEY_FILE=age-key.txt sops -e --age <AGE_PUBLIC_KEY> /tmp/secrets-dec.en
 # 4. Commit, push, deploy
 git commit -am "Configure for new-cluster"
 git push -u origin new-cluster
-make bootstrap
+./scripts/bootstrap.sh --branch new-cluster
 
 # 5. Wait for sync (~10 min), then deploy sandboxes and test
 make deploy-sandboxes
