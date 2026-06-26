@@ -199,13 +199,13 @@ spec:
             - name: KEYCLOAK_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_USERNAME
+                  name: keycloak-initial-admin
+                  key: username
             - name: KEYCLOAK_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_PASSWORD
+                  name: keycloak-initial-admin
+                  key: password
           securityContext:
             seLinuxOptions:
               type: spc_t
@@ -507,13 +507,13 @@ spec:
             - name: KEYCLOAK_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_USERNAME
+                  name: keycloak-initial-admin
+                  key: username
             - name: KEYCLOAK_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_PASSWORD
+                  name: keycloak-initial-admin
+                  key: password
           securityContext:
             seLinuxOptions:
               type: spc_t
@@ -815,13 +815,13 @@ spec:
             - name: KEYCLOAK_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_USERNAME
+                  name: keycloak-initial-admin
+                  key: username
             - name: KEYCLOAK_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: authbridge-keycloak-admin
-                  key: KEYCLOAK_ADMIN_PASSWORD
+                  name: keycloak-initial-admin
+                  key: password
           securityContext:
             seLinuxOptions:
               type: spc_t

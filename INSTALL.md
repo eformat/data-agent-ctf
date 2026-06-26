@@ -14,8 +14,8 @@ cd data-agent-ctf
 # 2. Configure for your cluster (edit ONE file)
 vi app-of-apps/values.yaml
 
-# 3. Bootstrap (auto-detects cluster domain if not set)
-make bootstrap
+# 3. Bootstrap (pass --branch if not on main)
+./scripts/bootstrap.sh --branch $(git branch --show-current)
 
 # 4. Wait for ArgoCD to sync all apps (~10 min)
 oc get applications -n openshift-gitops | grep retail-ctf

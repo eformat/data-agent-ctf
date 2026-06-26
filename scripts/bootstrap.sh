@@ -18,7 +18,7 @@ NAMESPACE="${NAMESPACE:-openshell}"
 TENANT_ARGOCD=false
 TOLERATE_GPU=false
 GIT_REPO="${GIT_REPO:-https://github.com/eformat/data-agent-ctf.git}"
-GIT_BRANCH="${GIT_BRANCH:-main}"
+GIT_BRANCH="${GIT_BRANCH:-$(git -C "$(dirname "$0")/.." rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}"    
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
