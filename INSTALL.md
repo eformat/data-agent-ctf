@@ -20,8 +20,8 @@ make bootstrap
 # 4. Wait for ArgoCD to sync all apps (~10 min)
 oc get applications -n openshift-gitops | grep retail-ctf
 
-# 5. Deploy sandboxes
-make deploy-sandboxes
+# 5. Deploy sandboxes (set NAMESPACE and GATEWAY for your cluster)
+NAMESPACE=data-agent-ctf GATEWAY=my-gateway make deploy-sandboxes
 
 # 6. Run tests
 make test
@@ -114,7 +114,8 @@ make bootstrap
 make test
 
 # 6. Deploy sandboxes and test - should see 15/15 tests pass
-make deploy-sandboxes
+#    Set NAMESPACE and GATEWAY to match your deployment
+NAMESPACE=data-agent-ctf GATEWAY=my-gateway make deploy-sandboxes
 make test
 ```
 

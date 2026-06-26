@@ -73,19 +73,21 @@ build-mcp: ## Build + push retail-mcp-server (requires $(MCP_SRC))
 	podman build -t $(REGISTRY)/retail-mcp-server:latest -f scripts/Containerfile.retail-mcp-server $(MCP_SRC)
 	podman push $(REGISTRY)/retail-mcp-server:latest
 
-GATEWAY ?= prelude3
+GATEWAY ?= prelude2
 
-deploy-sandboxes: ## Delete and recreate all sandboxes via ArgoCD PostSync job
+deploy-sandboxes: ## Delete and recreate all sandboxes
 	@for name in retail-finance retail-sales retail-ops; do \
 		openshell sandbox delete $$name -g $(GATEWAY) 2>/dev/null || true; \
 	done
-	@oc delete sandbox --all -n openshell 2>/dev/null || true
-	@oc delete job retail-sandbox-deploy -n openshell --force --grace-period=0 2>/dev/null || true
-	@oc delete pod -n openshell -l job-name=retail-sandbox-deploy --force --grace-period=0 2>/dev/null || true
-	@oc patch app retail-ctf-retail-sandboxes -n openshift-gitops --type merge -p '{"status":{"operationState":null}}' 2>/dev/null || true
+	@oc delete sandbox --all -n $(NAMESPACE) 2>/dev/null || true
+	@oc delete job retail-sandbox-deploy -n $(NAMESPACE) --force --grace-period=0 2>/dev/null || true
+	@oc delete pod -n $(NAMESPACE) -l job-name=retail-sandbox-deploy --force --grace-period=0 2>/dev/null || true
 	@sleep 3
-	@oc patch app retail-ctf-retail-sandboxes -n openshift-gitops --type merge -p '{"operation":{"sync":{"syncStrategy":{"hook":{}},"revision":"HEAD"}}}'
-	@echo "Sandbox deploy triggered — watch with: oc logs -n openshell -f job/retail-sandbox-deploy"
+	@helm template retail-sandboxes applications/retail-sandboxes/ \
+		--set appsDomain=$$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}') \
+		--set namespace=$(NAMESPACE) \
+		--show-only templates/sandbox-job.yaml | oc apply -n $(NAMESPACE) -f -
+	@echo "Sandbox deploy triggered — watch with: oc logs -n $(NAMESPACE) -f job/retail-sandbox-deploy"
 
 ## ── Cluster Operations ───────────────────────────────────────
 
@@ -97,4 +99,4 @@ status: ## Show deployment status
 	@oc get pods -n $(NAMESPACE) --no-headers 2>/dev/null | head -20 || echo "  none"
 	@echo ""
 	@echo "=== Sandboxes ==="
-	@openshell sandbox list -g $${OPENSHELL_GATEWAY:-prelude2-final} 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "  none"
+	@openshell sandbox list -g $(GATEWAY) 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "  none"
