@@ -1,0 +1,16 @@
+replicaCount: 1
+
+image:
+  repository: quay.io/eformat/openshell-authz-plugin
+  tag: latest
+  pullPolicy: Always
+
+spicedb:
+  endpoint: dev:50051
+  token: averysecretpresharedkey
+  insecure: "true"
+
+tls:
+  enabled: true
+
+enablePlugin: true
