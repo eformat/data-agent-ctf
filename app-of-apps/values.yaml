@@ -1,8 +1,8 @@
 # ── Cluster-Specific Configuration ──────────────────────────────
 # Edit these values for your cluster. Everything else derives from them.
 
-appsDomain: apps.prelude-m6wl4-q8rpm.sandbox1832.opentlc.com
-namespace: data-agent-ctf
+appsDomain: apps.prelude-m6wl4-rbw7h.sandbox1832.opentlc.com
+namespace: openshell
 realmName: retail-ctf
 
 # LLM inference endpoint
@@ -12,4 +12,4 @@ inference:
 
 # Git repo (for ArgoCD source references)
 gitRepo: https://github.com/eformat/data-agent-ctf.git
-gitRevision: prelude2
+gitRevision: prelude4
