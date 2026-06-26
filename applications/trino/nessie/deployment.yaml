@@ -23,7 +23,7 @@ spec:
           operator: Exists
       containers:
         - name: nessie
-          image: ghcr.io/projectnessie/nessie:latest
+          image: ghcr.io/projectnessie/nessie@sha256:1fc1e7d02a3d49827dd90c0cd41412303b525321d7fc5497e57d78693f8c3306
           ports:
             - containerPort: 19120
           resources:
