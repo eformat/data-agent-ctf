@@ -1,11 +1,40 @@
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openshell-certgen
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openshell-certgen
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openshell-certgen
+subjects:
+  - kind: ServiceAccount
+    name: openshell-certgen
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: openshell-certgen
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: openshell-route-patch
 spec:
   backoffLimit: 5
-  activeDeadlineSeconds: 120
+  activeDeadlineSeconds: 360
   template:
     spec:
       restartPolicy: OnFailure
@@ -21,7 +50,6 @@ spec:
             - |
               set -uo pipefail
               NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-              APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
 
               echo "=== Waiting for server TLS CA cert ==="
               CA=""
@@ -36,17 +64,20 @@ spec:
               done
 
               if [ -z "$CA" ] || ! echo "$CA" | grep -q "BEGIN CERTIFICATE"; then
-                echo "ERROR: CA cert not available after 5 minutes — skipping route patch"
+                echo "ERROR: CA cert not available after 5 minutes"
                 exit 1
               fi
 
               CA_JSON=$(echo "$CA" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 
-              echo "=== Patching routes ==="
+              echo "=== Patching routes with destinationCACertificate ==="
               for route in retail-finance retail-sales retail-ops; do
-                HOST="${route}.${APPS_DOMAIN}"
-                echo "  ${route} -> ${HOST}"
-                oc patch route "$route" -n "$NAMESPACE" --type=merge \
-                  -p "{\"spec\":{\"host\":\"${HOST}\",\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1 || echo "  (route not found)"
+                if oc get route "$route" -n "$NAMESPACE" 2>/dev/null; then
+                  oc patch route "$route" -n "$NAMESPACE" --type=merge \
+                    -p "{\"spec\":{\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1
+                  echo "  ${route}: patched"
+                else
+                  echo "  ${route}: not found (skipping)"
+                fi
               done
               echo "=== Done ==="
