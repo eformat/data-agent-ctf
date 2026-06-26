@@ -89,6 +89,39 @@ cp secrets-dec.yaml secrets-dec.enc.yaml  # filename must match .enc.yaml
 SOPS_AGE_KEY_FILE=age-key.txt sops -e --age <AGE_PUBLIC_KEY> secrets-dec.enc.yaml > applications/secrets/secrets.enc.yaml
 ```
 
+## Deploying to a New Cluster
+
+Each cluster gets its own git branch with cluster-specific `values.yaml`.
+
+```bash
+# 1. Create a branch for the new cluster
+git checkout -b new-cluster
+
+# 2. Configure for the cluster
+vi app-of-apps/values.yaml   # update appsDomain + inference
+
+# 3. Update sops secrets if needed (keycloak admin password, API keys)
+SOPS_AGE_KEY_FILE=age-key.txt sops -d applications/secrets/secrets.enc.yaml > /tmp/secrets-dec.enc.yaml
+vi /tmp/secrets-dec.enc.yaml
+SOPS_AGE_KEY_FILE=age-key.txt sops -e --age <AGE_PUBLIC_KEY> /tmp/secrets-dec.enc.yaml > applications/secrets/secrets.enc.yaml
+
+# 4. Commit, push, deploy
+git commit -am "Configure for new-cluster"
+git push -u origin new-cluster
+make bootstrap
+
+# 5. Wait for sync (~10 min), then deploy sandboxes and test
+make deploy-sandboxes
+make test
+```
+
+To merge code changes from `main`:
+```bash
+git checkout new-cluster
+git merge main
+git push
+```
+
 ## Makefile Targets
 
 ```bash
