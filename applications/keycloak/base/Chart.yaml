@@ -1,0 +1,5 @@
+apiVersion: v2
+name: keycloak-operators
+description: RHBK and CNPG operator subscriptions with scoped OperatorGroups
+version: 1.0.0
+type: application

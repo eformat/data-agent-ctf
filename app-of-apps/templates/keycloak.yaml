@@ -14,6 +14,9 @@ spec:
     repoURL: {{ .Values.gitRepo }}
     targetRevision: {{ .Values.gitRevision }}
     path: applications/keycloak/base
+    helm:
+      valuesObject:
+        namespace: {{ .Values.namespace }}
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.namespace }}
