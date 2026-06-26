@@ -7,7 +7,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: authbridge-environments
-  namespace: openshell
 data:
   SPIRE_ENABLED: "true"
   KEYCLOAK_URL: {{ include "retail-mcp.keycloakUrl" . | quote }}
@@ -20,7 +19,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: authbridge-spiffe-helper-config
-  namespace: openshell
 data:
   helper.conf: |
     agent_address = "/run/spire/agent-sockets/spire-agent.sock"
@@ -41,7 +39,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: authbridge-runtime-config
-  namespace: openshell
 data:
   config.yaml: |
     egressEnforcement: none
@@ -63,7 +60,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: authbridge-proxy-config
-  namespace: openshell
 type: Opaque
 stringData:
   TOKEN_URL: {{ include "retail-mcp.keycloakTokenUrl" . | quote }}
@@ -77,7 +73,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: authproxy-routes
-  namespace: openshell
 data:
   routes.yaml: |
     - host: "kubernetes**"
@@ -96,20 +91,19 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: mcp-authbridge-scc-privileged
-  namespace: openshell
 subjects:
   - kind: ServiceAccount
     name: default
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   - kind: ServiceAccount
     name: retail-finance-mcp
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   - kind: ServiceAccount
     name: retail-sales-mcp
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
   - kind: ServiceAccount
     name: retail-ops-mcp
-    namespace: openshell
+    namespace: {{ .Values.namespace }}
 roleRef:
   kind: ClusterRole
   name: system:openshift:scc:privileged

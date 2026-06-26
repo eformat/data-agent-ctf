@@ -4,7 +4,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: retail-finance-config
-  namespace: openshell
 data:
   agent-config.yaml: |
     domain:
@@ -53,7 +52,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: retail-finance-mcp
-  namespace: openshell
 spec:
   replicas: 1
   selector:
@@ -299,7 +297,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: retail-finance-mcp
-  namespace: openshell
 spec:
   selector:
     app: retail-finance-mcp
@@ -312,7 +309,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: retail-sales-config
-  namespace: openshell
 data:
   agent-config.yaml: |
     domain:
@@ -361,7 +357,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: retail-sales-mcp
-  namespace: openshell
 spec:
   replicas: 1
   selector:
@@ -607,7 +602,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: retail-sales-mcp
-  namespace: openshell
 spec:
   selector:
     app: retail-sales-mcp
@@ -620,7 +614,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: retail-ops-config
-  namespace: openshell
 data:
   agent-config.yaml: |
     domain:
@@ -669,7 +662,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: retail-ops-mcp
-  namespace: openshell
 spec:
   replicas: 1
   selector:
@@ -915,7 +907,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: retail-ops-mcp
-  namespace: openshell
 spec:
   selector:
     app: retail-ops-mcp
