@@ -140,30 +140,39 @@ data:
     assign_group alex ops-dept
     assign_group prelude retail-admins
 
-    echo "=== Creating SPIFFE audience scope ==="
-    kc_api POST "/${REALM}/client-scopes" -d '{
-      "name": "spiffe-mcp-aud",
-      "protocol": "openid-connect",
-      "attributes": {},
-      "protocolMappers": [{
-        "name": "spiffe-audience",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-audience-mapper",
-        "config": {
-          "included.custom.audience": "spiffe://retail-demo/ns/openshell/sa/default",
-          "id.token.claim": "false",
-          "access.token.claim": "true",
-          "introspection.token.claim": "true"
-        }
-      }]
-    }' 2>/dev/null || echo "  (exists)"
+    echo "=== Creating audience scopes ==="
+    NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "openshell")
+    SPIFFE_AUD="spiffe://retail-demo/ns/${NAMESPACE}/sa/default"
 
-    echo "=== Assigning audience scope to hermes-dashboard ==="
-    SCOPE_ID=$(kc_api GET "/${REALM}/client-scopes" | python3 -c "import sys,json; [print(s['id']) for s in json.load(sys.stdin) if s['name']=='spiffe-mcp-aud']" 2>/dev/null)
+    for scope_name in spiffe-mcp-aud agent-retail-finance-mcp-aud agent-retail-sales-mcp-aud agent-retail-ops-mcp-aud; do
+      kc_api POST "/${REALM}/client-scopes" -d "{
+        \"name\": \"${scope_name}\",
+        \"protocol\": \"openid-connect\",
+        \"attributes\": {},
+        \"protocolMappers\": [{
+          \"name\": \"${scope_name}\",
+          \"protocol\": \"openid-connect\",
+          \"protocolMapper\": \"oidc-audience-mapper\",
+          \"config\": {
+            \"included.custom.audience\": \"${SPIFFE_AUD}\",
+            \"id.token.claim\": \"false\",
+            \"access.token.claim\": \"true\",
+            \"introspection.token.claim\": \"true\"
+          }
+        }]
+      }" 2>/dev/null || echo "  ${scope_name} (exists)"
+    done
+
+    echo "=== Assigning audience scopes to hermes-dashboard ==="
     HD_ID=$(kc_api GET "/${REALM}/clients?clientId=hermes-dashboard" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])" 2>/dev/null)
-    if [ -n "$SCOPE_ID" ] && [ -n "$HD_ID" ]; then
-      kc_api PUT "/${REALM}/clients/${HD_ID}/default-client-scopes/${SCOPE_ID}" 2>/dev/null
-      echo "  assigned"
+    if [ -n "$HD_ID" ]; then
+      for scope_name in spiffe-mcp-aud agent-retail-finance-mcp-aud agent-retail-sales-mcp-aud agent-retail-ops-mcp-aud; do
+        SCOPE_ID=$(kc_api GET "/${REALM}/client-scopes" | python3 -c "import sys,json; [print(s['id']) for s in json.load(sys.stdin) if s['name']=='${scope_name}']" 2>/dev/null)
+        if [ -n "$SCOPE_ID" ]; then
+          kc_api PUT "/${REALM}/clients/${HD_ID}/default-client-scopes/${SCOPE_ID}" 2>/dev/null
+          echo "  ${scope_name}: assigned"
+        fi
+      done
     fi
 
     echo "=== Done ==="
