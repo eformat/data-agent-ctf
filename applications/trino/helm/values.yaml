@@ -65,9 +65,11 @@ envFrom:
   - secretRef:
       name: trino-credentials
 
+serviceAccountName: trino
+
 securityContext:
-  runAsUser: null
-  runAsGroup: null
+  runAsUser: 1000
+  runAsGroup: 1000
   runAsNonRoot: true
 
 containerSecurityContext:

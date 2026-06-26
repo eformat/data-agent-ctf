@@ -7,3 +7,4 @@ resources:
   - config/
   - query-ui/
   - route.yaml
+  - scc.yaml
