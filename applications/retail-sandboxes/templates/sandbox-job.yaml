@@ -27,8 +27,10 @@ spec:
               value: "/tmp"
             - name: HERMES_IMAGE
               value: "quay.io/eformat/hermes-openshell:latest"
+            - name: APPS_DOMAIN
+              value: "{{ .Values.appsDomain }}"
             - name: KEYCLOAK_ISSUER
-              value: ""
+              value: "https://keycloak-{{ .Values.namespace }}.{{ .Values.appsDomain }}/realms/{{ .Values.realmName }}"
             - name: KEYCLOAK_CLIENT_ID
               value: "hermes-dashboard"
             - name: INFERENCE_URL
@@ -124,12 +126,7 @@ data:
     echo "=== Checking gateway ==="
     openshell status -g "$GATEWAY_NAME"
 
-    APPS_DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
-
-    if [ -z "${KEYCLOAK_ISSUER:-}" ]; then
-      KC_HOST=$(oc get route keycloak -n "${NAMESPACE}" -o jsonpath='{.spec.host}' 2>/dev/null)
-      KEYCLOAK_ISSUER="https://${KC_HOST}/realms/retail-ctf"
-    fi
+    # APPS_DOMAIN and KEYCLOAK_ISSUER are injected via env vars from helm values
     echo "  KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}"
     echo "  APPS_DOMAIN=${APPS_DOMAIN}"
 

@@ -86,6 +86,9 @@ deploy-sandboxes: ## Delete and recreate all sandboxes
 	@helm template retail-sandboxes applications/retail-sandboxes/ \
 		--set appsDomain=$$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}') \
 		--set namespace=$(NAMESPACE) \
+		--set realmName=retail-ctf \
+		--set inference.host=$$(grep 'host:' app-of-apps/values.yaml | head -1 | awk '{print $$2}') \
+		--set inference.path=$$(grep 'path:' app-of-apps/values.yaml | head -1 | awk '{print $$2}') \
 		--show-only templates/sandbox-job.yaml | oc apply -n $(NAMESPACE) -f -
 	@echo "Sandbox deploy triggered — watch with: oc logs -n $(NAMESPACE) -f job/retail-sandbox-deploy"
 
