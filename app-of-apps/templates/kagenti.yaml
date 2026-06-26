@@ -11,8 +11,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/kagenti/rbac
   destination:
     server: https://kubernetes.default.svc
@@ -42,8 +42,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/kagenti/ztwim
   destination:
     server: https://kubernetes.default.svc
@@ -73,8 +73,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/eformat/data-agent-ctf.git
-    targetRevision: main
+    repoURL: {{ .Values.gitRepo }}
+    targetRevision: {{ .Values.gitRevision }}
     path: applications/kagenti/ztwim-instances
   destination:
     server: https://kubernetes.default.svc
