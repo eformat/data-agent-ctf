@@ -66,6 +66,8 @@ envFrom:
       name: trino-credentials
 
 securityContext:
+  runAsUser: null
+  runAsGroup: null
   runAsNonRoot: true
 
 containerSecurityContext:
