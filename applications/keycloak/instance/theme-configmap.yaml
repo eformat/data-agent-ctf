@@ -384,4 +384,3 @@ data:
 kind: ConfigMap
 metadata:
   name: keycloak-theme-prelude
-  namespace: openshell
