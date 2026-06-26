@@ -5,8 +5,7 @@ metadata:
   name: retail-sandbox-deploy
   annotations:
     argocd.argoproj.io/sync-wave: "5"
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/hook: Skip
 spec:
   backoffLimit: 10
   template:
