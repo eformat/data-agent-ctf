@@ -11,7 +11,7 @@ metadata:
   namespace: rhbk-operator
 spec:
   targetNamespaces:
-    - data-agent-ctf
+    - {{ .Values.namespace }}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -37,7 +37,7 @@ metadata:
   namespace: cnpg-operator
 spec:
   targetNamespaces:
-    - data-agent-ctf
+    - {{ .Values.namespace }}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription

@@ -39,7 +39,7 @@ spec:
     kind: Issuer
   dnsNames:
     - keycloak-service
-    - keycloak-service.data-agent-ctf.svc
-    - keycloak-service.data-agent-ctf.svc.cluster.local
+    - keycloak-service.openshell.svc
+    - keycloak-service.openshell.svc.cluster.local
   duration: 8760h
   renewBefore: 720h
