@@ -16,6 +16,8 @@ spec:
       key: password
   http:
     tlsSecret: keycloak-tls
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: keycloak-tls
   hostname:
     strict: false
   proxy:
