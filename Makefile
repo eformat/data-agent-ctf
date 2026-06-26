@@ -1,6 +1,6 @@
 .PHONY: bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp deploy-sandboxes
 
-NAMESPACE ?= data-agent-ctf
+NAMESPACE ?= openshell
 OPENSHELL_SRC ?= $(HOME)/git/OpenShell
 MCP_SRC ?= $(HOME)/git/data-agent-template
 REGISTRY ?= quay.io/eformat

@@ -1,17 +1,9 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: openshell-certgen
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: openshell-certgen
+  name: openshell-certgen-routes
 rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get"]
   - apiGroups: ["route.openshift.io"]
     resources: ["routes"]
     verbs: ["get", "patch", "update"]
@@ -22,14 +14,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: openshell-certgen
+  name: openshell-certgen-routes
 subjects:
   - kind: ServiceAccount
     name: openshell-certgen
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: openshell-certgen
+  name: openshell-certgen-routes
 ---
 apiVersion: batch/v1
 kind: Job
