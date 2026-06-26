@@ -1,5 +1,7 @@
 # Retail Enterprise Authorization Demo
 
+# === LEGACY CODE IN THIS DIRECTORY ONLY - DO NOT USE ====
+
 Multi-department authorization demo using SpiceDB, three Trino catalogs, and Hermes agent profiles running inside an OpenShell sandbox with Landlock isolation and OPA network policy.
 
 This example validates the SpiceDB platform auth pattern from `docs/spicedb-integration-plan.md`.
