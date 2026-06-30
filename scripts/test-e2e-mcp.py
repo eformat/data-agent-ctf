@@ -254,89 +254,98 @@ def test_sandbox_oidc_redirect(cfg, dept="sales"):
     return run
 
 
-def test_session_token_isolation(cfg, dept="sales"):
-    """Per-session token isolation: two users get their own JWTs via the proxy.
+def test_proxy_bearer_passthrough(cfg, dept="sales"):
+    """Proxy passes through per-user Authorization headers correctly.
 
-    Logs in as Sally and Fred via Keycloak direct-grant, then verifies the
-    sandbox auth proxy uses the correct per-session cookie — not a shared
-    global token. Each user's hermes_session_at cookie must produce an MCP
-    request with that user's JWT.
+    Simulates the exploit scenario: get tokens for BOTH users, then send
+    MCP requests through the proxy (localhost:8889) with each user's Bearer
+    token. The proxy must forward the correct token to the authbridge —
+    NOT use a shared global token.
 
-    Tests the fix for the shared _TokenStore exploit where the last user
-    to login overwrote everyone's token.
+    This is the actual code path: each user's spawned gateway sets
+    MCP_AUTH_BEARER in its env, and the httpx hook includes it as
+    the Authorization header on proxy requests.
     """
     def run():
-        base = f"https://retail-{dept}.{cfg['apps_domain']}"
         token_url = (f"{cfg['kc_url']}/realms/{cfg['realm']}"
                      "/protocol/openid-connect/token")
 
-        # Get tokens for both users
-        sally_resp = requests.post(token_url, data={
-            "grant_type": "password", "client_id": "hermes-dashboard",
-            "username": "sally", "password": cfg["user_pass"],
-        }, verify=False, timeout=10)
-        assert sally_resp.status_code == 200, f"Sally login failed: {sally_resp.status_code}"
-        sally_token = sally_resp.json()["access_token"]
+        tokens = {}
+        for user in ("sally", "fred"):
+            resp = requests.post(token_url, data={
+                "grant_type": "password", "client_id": "hermes-dashboard",
+                "username": user, "password": cfg["user_pass"],
+            }, verify=False, timeout=10)
+            assert resp.status_code == 200, f"{user} login failed: {resp.status_code}"
+            tokens[user] = resp.json()["access_token"]
 
-        fred_resp = requests.post(token_url, data={
-            "grant_type": "password", "client_id": "hermes-dashboard",
-            "username": "fred", "password": cfg["user_pass"],
-        }, verify=False, timeout=10)
-        assert fred_resp.status_code == 200, f"Fred login failed: {fred_resp.status_code}"
-        fred_token = fred_resp.json()["access_token"]
+        sandbox_pod = f"retail-{dept}"
+        hermes_pid = subprocess.run(
+            ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
+             "bash", "-c", "pgrep -f 'hermes_cli.main.*dashboard' | head -1"],
+            capture_output=True, text=True, timeout=15
+        ).stdout.strip()
+        assert hermes_pid, "hermes dashboard not found in sandbox pod"
 
-        # Decode usernames from JWTs to confirm they're different
-        def jwt_username(token):
-            payload = token.split(".")[1]
-            payload += "=" * (4 - len(payload) % 4)
-            claims = json.loads(base64.b64decode(payload))
-            return claims.get("preferred_username", "unknown")
+        mcp_body = json.dumps({
+            "jsonrpc": "2.0", "method": "initialize",
+            "params": {"protocolVersion": "2025-03-26",
+                       "capabilities": {},
+                       "clientInfo": {"name": "test", "version": "1.0"}},
+            "id": 1,
+        })
 
-        assert jwt_username(sally_token) == "sally", "Sally token has wrong username"
-        assert jwt_username(fred_token) == "fred", "Fred token has wrong username"
-
-        # Simulate the OIDC login by setting hermes_session_at cookies and
-        # hitting the sandbox's auth proxy endpoint. The proxy should read
-        # the cookie and use that user's JWT — not the global _TokenStore.
-        #
-        # We test by calling the MCP proxy endpoint from inside the pod,
-        # passing different cookies, and checking which user's JWT gets
-        # forwarded to the MCP authbridge.
-        pod = oc("get", "pods", "-n", cfg["namespace"],
-                 "-l", f"app=retail-{dept}-mcp",
-                 "-o", "jsonpath={.items[0].metadata.name}")
-
-        # Call authbridge (port 15124) directly with each user's JWT to
-        # verify the MCP server sees the correct identity
-        for user, token in [("sally", sally_token), ("fred", fred_token)]:
+        # Send BOTH users' tokens through the proxy (interleaved) and
+        # verify each one is forwarded correctly to the authbridge.
+        # This catches the shared-token-store bug: if the proxy uses a
+        # global token instead of the caller's Authorization header,
+        # one of these would fail or return the wrong user.
+        for user, token in tokens.items():
             result = subprocess.run(
-                ["oc", "exec", "-n", cfg["namespace"], pod, "-c", "mcp", "--",
-                 "curl", "-s", "--max-time", "10",
-                 "-H", "Content-Type: application/json",
-                 "-H", "Accept: application/json, text/event-stream",
-                 "-H", f"Authorization: Bearer {token}",
-                 "-X", "POST", "http://127.0.0.1:15124/mcp",
-                 "-d", json.dumps({
-                     "jsonrpc": "2.0", "method": "initialize",
-                     "params": {"protocolVersion": "2025-03-26",
-                                "capabilities": {},
-                                "clientInfo": {"name": "test", "version": "1.0"}},
-                     "id": 1,
-                 })],
+                ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
+                 "bash", "-c",
+                 f"nsenter -t {hermes_pid} -n curl -s --max-time 10 "
+                 f"-H 'Content-Type: application/json' "
+                 f"-H 'Accept: application/json, text/event-stream' "
+                 f"-H 'Authorization: Bearer {token}' "
+                 f"-X POST http://127.0.0.1:8889/mcp "
+                 f"-d '{mcp_body}'"],
                 capture_output=True, text=True, timeout=30
             )
             raw = result.stdout.strip()
-            # Parse SSE response
+            data = None
             for line in raw.splitlines():
                 if line.startswith("data: "):
                     data = json.loads(line[6:])
                     break
-            else:
-                data = json.loads(raw) if raw else {}
-            assert "result" in data, (
-                f"{user}'s JWT rejected by authbridge (HTTP response: {raw[:200]})")
+            if data is None and raw:
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError:
+                    pass
+            assert data and "result" in data, (
+                f"{user}: proxy→authbridge rejected Bearer token "
+                f"(response: {raw[:200]})")
 
-        return "sally and fred JWTs both accepted independently by authbridge"
+        # Verify a forged/empty token is rejected (proxy doesn't fall
+        # back to a stored token when Authorization header is present)
+        result = subprocess.run(
+            ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
+             "bash", "-c",
+             f"nsenter -t {hermes_pid} -n curl -s -o /dev/null -w '%{{http_code}}' "
+             f"--max-time 5 "
+             f"-H 'Content-Type: application/json' "
+             f"-H 'Authorization: Bearer forged.token.here' "
+             f"-X POST http://127.0.0.1:8889/mcp "
+             f"-d '{mcp_body}'"],
+            capture_output=True, text=True, timeout=15
+        )
+        code = result.stdout.strip().strip("'")
+        assert code not in ("200",), (
+            f"forged token should be rejected, got HTTP {code}")
+
+        return ("proxy passes sally/fred Bearer tokens independently, "
+                "rejects forged tokens")
     return run
 
 
@@ -398,7 +407,7 @@ def main():
     test("OIDC redirect to Keycloak", test_sandbox_oidc_redirect(cfg))
 
     print(f"\n\033[36m5. Session Token Isolation\033[0m")
-    test("Per-session token isolation (sales)", test_session_token_isolation(cfg))
+    test("Proxy Bearer passthrough (sales)", test_proxy_bearer_passthrough(cfg))
 
     # Summary
     print(f"\n{'=' * 50}")

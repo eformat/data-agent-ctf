@@ -20,8 +20,8 @@ make bootstrap
 # 4. Wait for ArgoCD to sync all apps (~10 min)
 oc get applications -n openshift-gitops | grep retail-ctf
 
-# 5. Deploy sandboxes (set NAMESPACE and GATEWAY for your cluster)
-NAMESPACE=data-agent-ctf GATEWAY=my-gateway make deploy-sandboxes
+# 5. Deploy sandboxes
+make deploy-sandboxes
 
 # 6. Run tests
 make test
@@ -110,12 +110,11 @@ git commit -am "Configure for new-cluster"
 git push -u origin new-cluster
 make bootstrap
 
-# 5  Wait for application sync (~10 min), then you can run e2e test - should see 10/15 tests pass
+# 5. Wait for application sync (~10 min), then run e2e test — should see 11/16 pass
 make test
 
-# 6. Deploy sandboxes and test - should see 15/15 tests pass
-#    Set NAMESPACE and GATEWAY to match your deployment
-NAMESPACE=data-agent-ctf GATEWAY=my-gateway make deploy-sandboxes
+# 6. Deploy sandboxes and test — should see 16/16 pass
+make deploy-sandboxes
 make test
 ```
 
@@ -130,7 +129,7 @@ git push
 
 ```bash
 make bootstrap        # Deploy everything
-make test             # Run E2E MCP pipeline tests (15 checks)
+make test             # Run E2E MCP pipeline tests (16 checks)
 make deploy-sandboxes # Recreate Hermes sandboxes
 make build-all        # Build and push all container images
 make build-hermes     # Build hermes-openshell image

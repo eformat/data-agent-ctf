@@ -27,6 +27,7 @@ set +a
 # Self-hosted OIDC provider for Hermes gated mode (Keycloak)
 export HERMES_DASHBOARD_OIDC_ISSUER="${HERMES_DASHBOARD_OIDC_ISSUER:-https://keycloak-keycloak.apps.sno.sandbox1254.opentlc.com/realms/prelude-m6wl4-vs9lb}"
 export HERMES_DASHBOARD_OIDC_CLIENT_ID="${HERMES_DASHBOARD_OIDC_CLIENT_ID:-hermes-dashboard}"
+export HERMES_DASHBOARD_OIDC_SCOPES="${HERMES_DASHBOARD_OIDC_SCOPES:-openid profile email spiffe-mcp-aud agent-retail-finance-mcp-aud agent-retail-sales-mcp-aud agent-retail-ops-mcp-aud}"
 
 # Public URL (for OAuth redirects)
 PUBLIC_URL="${HERMES_PUBLIC_URL:-https://retail-hermes.apps.prelude-m6wl4-vs9lb.sandbox1832.opentlc.com}"
