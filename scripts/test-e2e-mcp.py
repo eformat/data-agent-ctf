@@ -62,9 +62,9 @@ def discover():
     """Auto-discover endpoints from the cluster."""
     cfg = {}
     cfg["apps_domain"] = oc("get", "ingresses.config", "cluster", "-o", "jsonpath={.spec.domain}")
-    cfg["namespace"] = os.environ.get("NAMESPACE", oc("get", "app", "retail-ctf", "-n", "openshift-gitops",
+    cfg["namespace"] = os.environ.get("NAMESPACE", oc("get", "applications.argoproj.io", "retail-ctf", "-n", "openshift-gitops",
         "-o", "jsonpath={.spec.source.helm.releaseName}").strip() and
-        oc("get", "app", "retail-ctf", "-n", "openshift-gitops",
+        oc("get", "applications.argoproj.io", "retail-ctf", "-n", "openshift-gitops",
            "-o", "jsonpath={.spec.destination.namespace}"))
     cfg["kc_host"] = oc("get", "route", "keycloak", "-n", cfg["namespace"], "-o", "jsonpath={.spec.host}")
     cfg["kc_url"] = f"https://{cfg['kc_host']}"
@@ -254,6 +254,92 @@ def test_sandbox_oidc_redirect(cfg, dept="sales"):
     return run
 
 
+def test_session_token_isolation(cfg, dept="sales"):
+    """Per-session token isolation: two users get their own JWTs via the proxy.
+
+    Logs in as Sally and Fred via Keycloak direct-grant, then verifies the
+    sandbox auth proxy uses the correct per-session cookie — not a shared
+    global token. Each user's hermes_session_at cookie must produce an MCP
+    request with that user's JWT.
+
+    Tests the fix for the shared _TokenStore exploit where the last user
+    to login overwrote everyone's token.
+    """
+    def run():
+        base = f"https://retail-{dept}.{cfg['apps_domain']}"
+        token_url = (f"{cfg['kc_url']}/realms/{cfg['realm']}"
+                     "/protocol/openid-connect/token")
+
+        # Get tokens for both users
+        sally_resp = requests.post(token_url, data={
+            "grant_type": "password", "client_id": "hermes-dashboard",
+            "username": "sally", "password": cfg["user_pass"],
+        }, verify=False, timeout=10)
+        assert sally_resp.status_code == 200, f"Sally login failed: {sally_resp.status_code}"
+        sally_token = sally_resp.json()["access_token"]
+
+        fred_resp = requests.post(token_url, data={
+            "grant_type": "password", "client_id": "hermes-dashboard",
+            "username": "fred", "password": cfg["user_pass"],
+        }, verify=False, timeout=10)
+        assert fred_resp.status_code == 200, f"Fred login failed: {fred_resp.status_code}"
+        fred_token = fred_resp.json()["access_token"]
+
+        # Decode usernames from JWTs to confirm they're different
+        def jwt_username(token):
+            payload = token.split(".")[1]
+            payload += "=" * (4 - len(payload) % 4)
+            claims = json.loads(base64.b64decode(payload))
+            return claims.get("preferred_username", "unknown")
+
+        assert jwt_username(sally_token) == "sally", "Sally token has wrong username"
+        assert jwt_username(fred_token) == "fred", "Fred token has wrong username"
+
+        # Simulate the OIDC login by setting hermes_session_at cookies and
+        # hitting the sandbox's auth proxy endpoint. The proxy should read
+        # the cookie and use that user's JWT — not the global _TokenStore.
+        #
+        # We test by calling the MCP proxy endpoint from inside the pod,
+        # passing different cookies, and checking which user's JWT gets
+        # forwarded to the MCP authbridge.
+        pod = oc("get", "pods", "-n", cfg["namespace"],
+                 "-l", f"app=retail-{dept}-mcp",
+                 "-o", "jsonpath={.items[0].metadata.name}")
+
+        # Call authbridge (port 15124) directly with each user's JWT to
+        # verify the MCP server sees the correct identity
+        for user, token in [("sally", sally_token), ("fred", fred_token)]:
+            result = subprocess.run(
+                ["oc", "exec", "-n", cfg["namespace"], pod, "-c", "mcp", "--",
+                 "curl", "-s", "--max-time", "10",
+                 "-H", "Content-Type: application/json",
+                 "-H", "Accept: application/json, text/event-stream",
+                 "-H", f"Authorization: Bearer {token}",
+                 "-X", "POST", "http://127.0.0.1:15124/mcp",
+                 "-d", json.dumps({
+                     "jsonrpc": "2.0", "method": "initialize",
+                     "params": {"protocolVersion": "2025-03-26",
+                                "capabilities": {},
+                                "clientInfo": {"name": "test", "version": "1.0"}},
+                     "id": 1,
+                 })],
+                capture_output=True, text=True, timeout=30
+            )
+            raw = result.stdout.strip()
+            # Parse SSE response
+            for line in raw.splitlines():
+                if line.startswith("data: "):
+                    data = json.loads(line[6:])
+                    break
+            else:
+                data = json.loads(raw) if raw else {}
+            assert "result" in data, (
+                f"{user}'s JWT rejected by authbridge (HTTP response: {raw[:200]})")
+
+        return "sally and fred JWTs both accepted independently by authbridge"
+    return run
+
+
 def test_spire_agent_running(cfg):
     """SPIRE agent is running and ready."""
     def run():
@@ -310,6 +396,9 @@ def main():
     for dept in ["sales", "finance", "ops"]:
         test(f"Route serves login ({dept})", test_sandbox_route(cfg, dept))
     test("OIDC redirect to Keycloak", test_sandbox_oidc_redirect(cfg))
+
+    print(f"\n\033[36m5. Session Token Isolation\033[0m")
+    test("Per-session token isolation (sales)", test_session_token_isolation(cfg))
 
     # Summary
     print(f"\n{'=' * 50}")

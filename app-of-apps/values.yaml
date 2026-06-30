@@ -12,4 +12,4 @@ inference:
 
 # Git repo (for ArgoCD source references)
 gitRepo: https://github.com/eformat/data-agent-ctf.git
-gitRevision: prelude4
+gitRevision: main
