@@ -277,6 +277,21 @@ def patch_lifespan(source):
 
 
 def patch_pty_ws_user(source):
+    # Force every chat to spawn its own gateway subprocess by removing
+    # the HERMES_TUI_GATEWAY_URL assignment. Without it, the PTY child
+    # spawns tui_gateway.entry which inherits MCP_AUTH_BEARER from env.
+    gw_marker = ('    if profile_dir is None:\n'
+                 '        if gateway_ws_url := _build_gateway_ws_url():\n'
+                 '            env["HERMES_TUI_GATEWAY_URL"] = gateway_ws_url')
+    if gw_marker in source:
+        source = source.replace(gw_marker,
+            '    # Per-user token isolation: always spawn a separate gateway\n'
+            '    # subprocess so each user gets their own MCP_AUTH_BEARER env.', 1)
+        print("  Patched _resolve_chat_argv (force separate gateway)",
+              file=sys.stderr)
+    else:
+        print("  WARNING: gateway_ws_url marker not found", file=sys.stderr)
+
     marker = "    try:\n        bridge = PtyBridge.spawn(argv, cwd=cwd, env=env)"
     if marker not in source:
         print("  WARNING: PtyBridge.spawn marker not found", file=sys.stderr)
