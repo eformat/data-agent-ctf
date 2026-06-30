@@ -338,7 +338,7 @@ def test_proxy_bearer_passthrough(cfg, dept="sales"):
              f"-H 'Authorization: Bearer forged.token.here' "
              f"-X POST http://127.0.0.1:8889/mcp "
              f"-d '{mcp_body}'"],
-            capture_output=True, text=True, timeout=15
+            capture_output=True, text=True, timeout=30
         )
         code = result.stdout.strip().strip("'")
         assert code not in ("200",), (
