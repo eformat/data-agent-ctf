@@ -227,6 +227,8 @@ PTY_WS_USER_PATCH = '''
                 _uat = _ats.store.user_tokens.get(_un)
                 if _uat:
                     env["MCP_AUTH_BEARER"] = _uat
+                    if os.path.exists("/opt/hermes/nodumpable.so"):
+                        env["LD_PRELOAD"] = "/opt/hermes/nodumpable.so"
                 break
     except Exception:
         pass
@@ -235,6 +237,9 @@ PTY_WS_USER_PATCH = '''
 # ── Patch 5: mcp_tool.py — httpx hook + PR_SET_DUMPABLE ─────────
 
 MCP_TOOL_DUMPABLE = '''
+# Read token from env, store in process memory, then scrub from env
+# and block /proc access. The token is only in Python memory after this.
+_MCP_BEARER_CACHE = os.environ.pop("MCP_AUTH_BEARER", "")
 try:
     import ctypes as _ctypes
     _ctypes.CDLL("libc.so.6").prctl(4, 0)
@@ -244,10 +249,9 @@ except Exception:
 
 MCP_HTTPX_HOOK = '''
             async def _inject_auth_bearer(request):
-                _bearer = os.environ.get("MCP_AUTH_BEARER", "")
-                if _bearer and "127.0.0.1" in str(request.url):
+                if _MCP_BEARER_CACHE and "127.0.0.1" in str(request.url):
                     request.headers["authorization"] = (
-                        f"Bearer {_bearer}")
+                        f"Bearer {_MCP_BEARER_CACHE}")
 
 '''
 

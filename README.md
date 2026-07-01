@@ -67,6 +67,7 @@ Click on the boxes in the visualizer to see how the components work.
 - **Open court**: any scion can walk into any House's Mentat chamber. Sally can sit at the Harkonnen finance terminal. That's where the game begins. But each stillsuit can only reach **its own** MCP server — the OPA proxy blocks cross-House MCP traffic.
 - **The spice vault (Trino) has no locks**: if you can reach `trino:8080` directly, it answers any query. No authentication. The spice is unguarded — you just need to get past the shields.
 - **The crysknife is invisible**: both the OIDC access token AND the LLM API key are held **in the dashboard process's memory**, never written to disk. The agent process cannot read them. This is the Kagenti pattern — "Agents never see tokens." The API key is injected by the OpenShell **providers-v2** system — the gateway holds the credential and injects it into the sandbox at runtime. Even the sandbox's env vars don't contain it (it's stripped before the agent starts).
+- **Shared passwords**: all scions share the same password (`CTF_USER_PASSWORD`). Since you know the other user's credentials, you can log in as them through the browser — the system will correctly give you their permissions. This is a credential management design choice for the CTF, not a token isolation bypass. The agent cannot exploit this automatically — it requires authentication via the Keycloak OIDC flow.
 
 ### First — prove the Voice works
 

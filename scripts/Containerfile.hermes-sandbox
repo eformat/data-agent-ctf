@@ -16,6 +16,12 @@ RUN install -d -o sandbox -g sandbox /workspace /sandbox /sandbox/.hermes
 RUN chmod -R a+rX /opt/hermes && \
     ln -sf /opt/hermes/.venv/bin/hermes /usr/local/bin/hermes
 
+# Build nodumpable.so — LD_PRELOAD library that calls prctl(PR_SET_DUMPABLE,0)
+# before main(). Blocks /proc/PID/environ reads from sibling processes.
+COPY scripts/nodumpable.c /tmp/nodumpable.c
+RUN gcc -shared -fPIC -o /opt/hermes/nodumpable.so /tmp/nodumpable.c -nostartfiles && \
+    rm -f /tmp/nodumpable.c
+
 # Patch: normalize 0.0.0.0/:: to 127.0.0.1 in TUI WebSocket URLs.
 COPY scripts/fix-tui-wildcard-bind.py /tmp/fix-tui-wildcard-bind.py
 RUN python3 /tmp/fix-tui-wildcard-bind.py \
