@@ -54,6 +54,13 @@ network_policies:
     binaries:
       - path: /opt/hermes/.venv/bin/python*
       - path: /usr/bin/python*
+  keycloak:
+    name: keycloak-oauth
+    endpoints:
+      - host: keycloak-{{ .Values.namespace }}.{{ .Values.appsDomain }}
+        port: 443
+    binaries:
+      - path: /opt/hermes/.venv/bin/python*
   dashboard:
     name: hermes-dashboard-internal
     endpoints:
