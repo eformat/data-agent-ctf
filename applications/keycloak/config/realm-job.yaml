@@ -87,7 +87,7 @@ data:
       "clientId": "hermes-dashboard",
       "enabled": true,
       "publicClient": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "redirectUris": ["*"],
       "webOrigins": ["*"],
       "protocol": "openid-connect",
