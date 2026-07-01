@@ -61,6 +61,7 @@ network_policies:
         port: 443
     binaries:
       - path: /opt/hermes/.venv/bin/python*
+      - path: /usr/bin/python*
   dashboard:
     name: hermes-dashboard-internal
     endpoints:
