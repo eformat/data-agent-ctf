@@ -35,6 +35,11 @@ spec:
                 secretKeyRef:
                   name: keycloak-admin-secret
                   key: CTF_USER_PASSWORD
+            - name: HERMES_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: HERMES_CLIENT_SECRET
             - name: KEYCLOAK_URL
               value: "https://keycloak-service:8443"
             - name: REALM_NAME
@@ -82,12 +87,13 @@ data:
     echo "=== Setting realm theme ==="
     kc_api PUT "/${REALM}" -d "{\"realm\":\"${REALM}\",\"loginTheme\":\"prelude\"}" 2>/dev/null || echo "  (failed)"
 
-    echo "=== Creating client: hermes-dashboard ==="
+    echo "=== Creating client: hermes-dashboard (confidential) ==="
     kc_api POST "/${REALM}/clients" -d '{
       "clientId": "hermes-dashboard",
       "enabled": true,
-      "publicClient": true,
+      "publicClient": false,
       "directAccessGrantsEnabled": false,
+      "secret": "'${HERMES_CLIENT_SECRET}'",
       "redirectUris": ["*"],
       "webOrigins": ["*"],
       "protocol": "openid-connect",

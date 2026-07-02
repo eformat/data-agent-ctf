@@ -86,6 +86,15 @@ def discover():
            "-o", "jsonpath={.data.CTF_USER_PASSWORD}")
     ).decode()
 
+    # Get hermes-dashboard client secret (confidential client)
+    try:
+        cfg["client_secret"] = base64.b64decode(
+            oc("get", "secret", "keycloak-admin-secret", "-n", cfg["namespace"],
+               "-o", "jsonpath={.data.HERMES_CLIENT_SECRET}")
+        ).decode()
+    except Exception:
+        cfg["client_secret"] = ""
+
     return cfg
 
 
@@ -119,17 +128,65 @@ def test_keycloak_admin_login(cfg):
     return run
 
 
+def _auth_code_login(cfg, user):
+    """Get an access token via the authorization code flow.
+
+    Simulates the browser OIDC flow: GET auth URL → POST login form → exchange
+    code + client_secret for tokens. Works with confidential clients.
+    """
+    import re
+    from urllib.parse import urlparse, parse_qs
+
+    session = requests.Session()
+    session.verify = False
+
+    scopes = ("openid profile email spiffe-mcp-aud "
+              "agent-retail-finance-mcp-aud agent-retail-sales-mcp-aud "
+              "agent-retail-ops-mcp-aud")
+    redirect_uri = (f"https://retail-sales.{cfg['apps_domain']}"
+                    "/auth/callback")
+
+    r = session.get(
+        f"{cfg['kc_url']}/realms/{cfg['realm']}/protocol/openid-connect/auth",
+        params={"response_type": "code", "client_id": "hermes-dashboard",
+                "redirect_uri": redirect_uri, "scope": scopes,
+                "state": "test"},
+        allow_redirects=False, timeout=10)
+    assert r.status_code == 200, f"auth page: HTTP {r.status_code}"
+
+    action = re.search(r'action="([^"]+)"', r.text)
+    assert action, "login form action not found"
+    login_url = action.group(1).replace("&amp;", "&")
+
+    r = session.post(login_url,
+                     data={"username": user, "password": cfg["user_pass"]},
+                     allow_redirects=False, timeout=10)
+    assert r.status_code == 302, f"login POST: HTTP {r.status_code}"
+
+    callback = r.headers["location"]
+    code = parse_qs(urlparse(callback).query).get("code", [""])[0]
+    assert code, f"no code in redirect: {callback[:100]}"
+
+    token_data = {
+        "grant_type": "authorization_code",
+        "client_id": "hermes-dashboard",
+        "code": code,
+        "redirect_uri": redirect_uri,
+    }
+    if cfg.get("client_secret"):
+        token_data["client_secret"] = cfg["client_secret"]
+
+    r = requests.post(
+        f"{cfg['kc_url']}/realms/{cfg['realm']}/protocol/openid-connect/token",
+        data=token_data, verify=False, timeout=10)
+    assert r.status_code == 200, f"token exchange: HTTP {r.status_code}: {r.text[:200]}"
+    return r.json()["access_token"]
+
+
 def test_user_login(cfg, user="sally"):
-    """CTF user can login to retail-ctf realm."""
+    """CTF user can login to retail-ctf realm via authorization code flow."""
     def run():
-        r = requests.post(
-            f"{cfg['kc_url']}/realms/{cfg['realm']}/protocol/openid-connect/token",
-            data={"grant_type": "password", "client_id": "hermes-dashboard",
-                  "username": user, "password": cfg["user_pass"]},
-            verify=False, timeout=10
-        )
-        assert r.status_code == 200, f"HTTP {r.status_code}: {r.text[:200]}"
-        cfg[f"token_{user}"] = r.json()["access_token"]
+        cfg[f"token_{user}"] = _auth_code_login(cfg, user)
     return run
 
 
@@ -267,17 +324,10 @@ def test_proxy_bearer_passthrough(cfg, dept="sales"):
     the Authorization header on proxy requests.
     """
     def run():
-        token_url = (f"{cfg['kc_url']}/realms/{cfg['realm']}"
-                     "/protocol/openid-connect/token")
-
         tokens = {}
         for user in ("sally", "fred"):
-            resp = requests.post(token_url, data={
-                "grant_type": "password", "client_id": "hermes-dashboard",
-                "username": user, "password": cfg["user_pass"],
-            }, verify=False, timeout=10)
-            assert resp.status_code == 200, f"{user} login failed: {resp.status_code}"
-            tokens[user] = resp.json()["access_token"]
+            tokens[user] = _auth_code_login(cfg, user)
+            assert tokens[user], f"{user} login failed"
 
         sandbox_pod = f"retail-{dept}"
         hermes_pid = subprocess.run(

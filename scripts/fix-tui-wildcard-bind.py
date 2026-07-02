@@ -334,6 +334,84 @@ def patch_mcp_tool(source):
     return source
 
 
+def patch_oidc_confidential(source):
+    """Add client_secret support to the self-hosted OIDC plugin."""
+    # 1. Constructor: add client_secret param
+    old_init = ("    def __init__(\n"
+                "        self,\n"
+                "        *,\n"
+                "        issuer: str,\n"
+                "        client_id: str,\n"
+                "        scopes: str = _DEFAULT_SCOPES,\n"
+                "    ) -> None:")
+    new_init = ("    def __init__(\n"
+                "        self,\n"
+                "        *,\n"
+                "        issuer: str,\n"
+                "        client_id: str,\n"
+                "        scopes: str = _DEFAULT_SCOPES,\n"
+                "        client_secret: str = \"\",\n"
+                "    ) -> None:")
+    if old_init not in source:
+        print("  WARNING: OIDC __init__ not found", file=sys.stderr)
+        return source
+    source = source.replace(old_init, new_init, 1)
+
+    # Store client_secret on self
+    store_marker = "        self._scopes = scopes.strip() or _DEFAULT_SCOPES"
+    if store_marker not in source:
+        print("  WARNING: _scopes assignment not found", file=sys.stderr)
+        return source
+    source = source.replace(
+        store_marker,
+        store_marker + "\n        self._client_secret = client_secret", 1)
+
+    # 2. complete_login: add client_secret to token exchange
+    exchange_marker = ("        # TODO(confidential-client): when client_secret "
+                       "support lands, add it")
+    if exchange_marker not in source:
+        print("  WARNING: complete_login TODO not found", file=sys.stderr)
+        return source
+    source = source.replace(
+        exchange_marker,
+        "        if self._client_secret:\n"
+        "            data[\"client_secret\"] = self._client_secret\n"
+        "        # confidential-client: client_secret added above", 1)
+
+    # 3. refresh_session: add client_secret to refresh
+    refresh_marker = ("        # TODO(confidential-client): add client_secret "
+                      "here when supported.")
+    if refresh_marker not in source:
+        print("  WARNING: refresh_session TODO not found", file=sys.stderr)
+        return source
+    source = source.replace(
+        refresh_marker,
+        "        if self._client_secret:\n"
+        "            data[\"client_secret\"] = self._client_secret\n"
+        "        # confidential-client: client_secret added above", 1)
+
+    # 4. register: read env var and pass to constructor
+    old_construct = ("        provider = SelfHostedOIDCProvider(\n"
+                     "            issuer=issuer, client_id=client_id, "
+                     "scopes=scopes\n"
+                     "        )")
+    new_construct = ("        client_secret = _resolve_setting(\n"
+                     "            \"HERMES_DASHBOARD_OIDC_CLIENT_SECRET\",\n"
+                     "            oidc_cfg.get(\"client_secret\"))\n"
+                     "        provider = SelfHostedOIDCProvider(\n"
+                     "            issuer=issuer, client_id=client_id,\n"
+                     "            scopes=scopes, client_secret=client_secret\n"
+                     "        )")
+    if old_construct not in source:
+        print("  WARNING: provider construction not found", file=sys.stderr)
+        return source
+    source = source.replace(old_construct, new_construct, 1)
+
+    print("  Patched OIDC plugin (confidential client_secret)",
+          file=sys.stderr)
+    return source
+
+
 def main():
     ws_path = (sys.argv[1] if len(sys.argv) > 1
                else "/opt/hermes/hermes_cli/web_server.py")
@@ -359,11 +437,11 @@ def main():
         if marker in oidc_source:
             oidc_source = oidc_source.replace(
                 marker, OIDC_TOKEN_CAPTURE_PATCH + marker, 1)
-            with open(oidc_path, "w") as f:
-                f.write(oidc_source)
-            print("  Patched OIDC plugin", file=sys.stderr)
         else:
             print("  WARNING: OIDC marker not found", file=sys.stderr)
+        oidc_source = patch_oidc_confidential(oidc_source)
+        with open(oidc_path, "w") as f:
+            f.write(oidc_source)
     except FileNotFoundError:
         print("  WARNING: OIDC plugin not found", file=sys.stderr)
 

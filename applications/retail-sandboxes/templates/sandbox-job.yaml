@@ -33,6 +33,11 @@ spec:
               value: "https://keycloak-{{ .Values.namespace }}.{{ .Values.appsDomain }}/realms/{{ .Values.realmName }}"
             - name: KEYCLOAK_CLIENT_ID
               value: "hermes-dashboard"
+            - name: HERMES_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: HERMES_CLIENT_SECRET
             - name: INFERENCE_URL
               value: "http://{{ .Values.inference.host }}{{ .Values.inference.path }}"
           volumeMounts:
@@ -175,6 +180,7 @@ data:
                HERMES_ACTIVE_PROFILE="retail-${dept}" \
                HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
                HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
+               HERMES_DASHBOARD_OIDC_CLIENT_SECRET="${HERMES_CLIENT_SECRET}" \
                HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
                INFERENCE_UPSTREAM_URL="${INFERENCE_URL}" \
                MCP_UPSTREAM_URL="http://retail-${dept}-mcp.${NAMESPACE}.svc.cluster.local:9090" \
