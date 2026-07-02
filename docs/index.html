@@ -337,7 +337,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
   },
   "canvas": {
     "width": 1700,
-    "height": 1223
+    "height": 1261
   },
   "nodes": {
     "sally": {
@@ -449,7 +449,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "x": 20,
       "y": 590,
       "w": 1650,
-      "h": 603,
+      "h": 641,
       "type": "boundary",
       "label": "Security Layers",
       "labelAlign": "left"
@@ -458,7 +458,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "x": 40,
       "y": 620,
       "w": 420,
-      "h": 185,
+      "h": 257,
       "type": "container",
       "label": "Identity & Authentication",
       "color": "#f0883e"
@@ -591,16 +591,16 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "sec_process": {
       "x": 40,
-      "y": 890,
+      "y": 892,
       "w": 530,
-      "h": 155,
+      "h": 191,
       "type": "container",
       "label": "Process & Filesystem Isolation",
       "color": "#3fb950"
     },
     "s_seccomp": {
       "x": 55,
-      "y": 925,
+      "y": 927,
       "w": 500,
       "h": 32,
       "label": "Seccomp",
@@ -612,7 +612,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_landlock": {
       "x": 55,
-      "y": 961,
+      "y": 963,
       "w": 500,
       "h": 32,
       "label": "Landlock",
@@ -624,7 +624,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_inherit": {
       "x": 55,
-      "y": 997,
+      "y": 999,
       "w": 500,
       "h": 32,
       "label": "Subprocess Inheritance",
@@ -636,16 +636,16 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "sec_cred": {
       "x": 590,
-      "y": 890,
+      "y": 892,
       "w": 560,
-      "h": 296,
+      "h": 332,
       "type": "container",
       "label": "Credential Protection",
       "color": "#f85149"
     },
     "s_tofu": {
       "x": 605,
-      "y": 961,
+      "y": 963,
       "w": 530,
       "h": 32,
       "label": "TOFU Hashing",
@@ -657,7 +657,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_nosecrets": {
       "x": 605,
-      "y": 997,
+      "y": 999,
       "w": 530,
       "h": 32,
       "label": "No Static Secrets",
@@ -669,7 +669,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_shortlived": {
       "x": 605,
-      "y": 1033,
+      "y": 1035,
       "w": 530,
       "h": 32,
       "label": "Short-Lived Tokens",
@@ -681,7 +681,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_accesstok": {
       "x": 605,
-      "y": 1069,
+      "y": 1071,
       "w": 530,
       "h": 32,
       "label": "Access Token (not ID token)",
@@ -728,18 +728,18 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "w": 200,
       "h": 55,
       "label": "Auth Proxy",
-      "sublabel": "localhost:8889 · injects JWT",
+      "sublabel": "localhost:8889 · passthrough proxy",
       "color": "#f0883e",
       "fontSize": 14,
       "inner": true
     },
     "s_authproxy": {
       "x": 605,
-      "y": 1105,
+      "y": 1107,
       "w": 530,
       "h": 32,
-      "label": "Dashboard Auth Proxy",
-      "sublabel": "token in memory only · agent makes plain HTTP · proxy injects JWT",
+      "label": "Per-Process Auth Proxy",
+      "sublabel": "MCP_AUTH_BEARER per-subprocess · passthrough · no shared global token",
       "type": "plugin",
       "inner": true,
       "color": "#f85149",
@@ -747,11 +747,11 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_dumpable": {
       "x": 605,
-      "y": 1141,
+      "y": 1143,
       "w": 530,
       "h": 32,
       "label": "PR_SET_DUMPABLE=0",
-      "sublabel": "/proc/PID/mem + /environ + ptrace blocked for siblings",
+      "sublabel": "LD_PRELOAD=nodumpable.so on ALL children · /proc blocked for every subprocess",
       "type": "plugin",
       "inner": true,
       "color": "#f85149",
@@ -792,7 +792,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "s_providers": {
       "x": 605,
-      "y": 925,
+      "y": 927,
       "w": 530,
       "h": 32,
       "label": "providers-v2 Credential Injection",
@@ -800,6 +800,54 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
       "type": "plugin",
       "inner": true,
       "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_perprocess": {
+      "x": 605,
+      "y": 1179,
+      "w": 530,
+      "h": 32,
+      "label": "Per-Process MCP_AUTH_BEARER",
+      "sublabel": "each chat spawns own subprocess · JWT in per-process env · os.environ.pop()",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f85149",
+      "fontSize": 12
+    },
+    "s_confidential": {
+      "x": 55,
+      "y": 799,
+      "w": 390,
+      "h": 32,
+      "label": "Confidential OIDC Client",
+      "sublabel": "client_secret required · directAccessGrantsEnabled=false",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "s_audience": {
+      "x": 55,
+      "y": 835,
+      "w": 390,
+      "h": 32,
+      "label": "Audience Scope Lock",
+      "sublabel": "only hermes-dashboard JWTs carry spiffe:// audience · others rejected",
+      "type": "plugin",
+      "inner": true,
+      "color": "#f0883e",
+      "fontSize": 12
+    },
+    "s_ldpreload": {
+      "x": 55,
+      "y": 1035,
+      "w": 500,
+      "h": 32,
+      "label": "LD_PRELOAD nodumpable.so",
+      "sublabel": "compiled C · prctl(PR_SET_DUMPABLE,0) in constructor · before main()",
+      "type": "plugin",
+      "inner": true,
+      "color": "#3fb950",
       "fontSize": 12
     }
   },
@@ -1586,79 +1634,79 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
     },
     "auth_proxy": {
       "title": "Dashboard Auth Proxy (localhost:8889)",
-      "description": "HTTP proxy running inside the dashboard process. The OIDC access token from Keycloak is held in the dashboard process's memory only — never written to disk. The agent makes plain HTTP requests to :8889, which injects the Authorization: Bearer header before forwarding. Inspired by the Kagenti AuthBridge pattern: agents never see tokens.",
+      "description": "HTTP proxy running inside the dashboard process. Passes through the Authorization header from the caller and returns 503 if none is present. No longer injects JWTs from a global store — each subprocess carries its own MCP_AUTH_BEARER credential.",
       "details": [
         [
           "Address",
           "localhost:8889"
         ],
         [
-          "Token Storage",
-          "Dashboard process memory only"
+          "Mode",
+          "Passthrough proxy (not injection)"
         ],
         [
-          "PR_SET_DUMPABLE",
-          "0 — blocks /proc/PID/mem, /environ, /maps"
+          "Authorization",
+          "Passes through caller's Authorization header"
         ],
         [
-          "ptrace",
-          "Blocked for sibling processes"
+          "No Header",
+          "Returns 503 Service Unavailable"
         ],
         [
-          "Agent Access",
-          "Zero — plain HTTP in, authed HTTP out"
-        ],
-        [
-          "Pattern",
-          "Kagenti AuthBridge: agents never see tokens"
+          "Token Source",
+          "MCP_AUTH_BEARER per-subprocess env var"
         ]
       ]
     },
     "s_authproxy": {
-      "title": "Dashboard Auth Proxy",
-      "description": "The OIDC access token lives only in the dashboard process memory. The agent process makes plain HTTP requests to localhost:8889. The auth proxy injects the Authorization: Bearer header before forwarding. The agent never sees, stores, or transmits the token.",
+      "title": "Per-Process Auth Proxy",
+      "description": "The auth proxy at localhost:8889 passes through the Authorization header from the calling process. Each chat session spawns its own gateway subprocess with MCP_AUTH_BEARER set in its per-process environment. There is no shared global token — each subprocess has its own credential that is popped from os.environ at startup.",
       "details": [
         [
-          "Token Location",
-          "Dashboard process memory only"
+          "Mode",
+          "Passthrough (not injection)"
         ],
         [
-          "Agent Sees",
-          "Plain HTTP (no auth headers)"
+          "Token Source",
+          "MCP_AUTH_BEARER in per-subprocess env"
         ],
         [
-          "Proxy Adds",
-          "Authorization: Bearer <token>"
+          "Isolation",
+          "Each chat → own subprocess → own token"
         ],
         [
-          "Disk",
-          "Token never written to disk"
+          "No Header",
+          "Proxy returns 503"
         ],
         [
-          "Pattern",
-          "Kagenti AuthBridge"
+          "Defends",
+          "Cross-session token leakage"
         ]
       ]
     },
     "s_dumpable": {
-      "title": "PR_SET_DUMPABLE=0",
-      "description": "Linux prctl(PR_SET_DUMPABLE, 0) on the dashboard process prevents any sibling process from reading /proc/PID/mem, /proc/PID/environ, or /proc/PID/maps. Combined with ptrace_scope restrictions, the agent process has zero access to the token in the dashboard's memory.",
+      "title": "PR_SET_DUMPABLE=0 (via LD_PRELOAD)",
+      "description": "LD_PRELOAD=nodumpable.so is set on ALL child processes (Node.js and Python). The compiled C library calls prctl(PR_SET_DUMPABLE,0) in a constructor function before main() runs, blocking /proc/PID/mem and /proc/PID/environ access for every subprocess.",
       "details": [
         [
-          "Blocks",
-          "/proc/PID/mem, /proc/PID/environ, /proc/PID/maps"
-        ],
-        [
-          "ptrace",
-          "Blocked for sibling processes"
+          "Mechanism",
+          "LD_PRELOAD=nodumpable.so"
         ],
         [
           "Scope",
-          "Dashboard process (token holder)"
+          "ALL child processes (Node.js + Python)"
+        ],
+        [
+          "Blocks",
+          "/proc/PID/mem, /proc/PID/environ"
+        ],
+        [
+          "Timing",
+          "Constructor runs before main()"
         ],
         [
           "Defends",
-          "Token extraction via /proc or ptrace"
+          "Token extraction via /proc from siblings"
         ]
       ]
     },
@@ -1777,6 +1825,114 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "Credential sprawl, static secret mounting"
         ]
       ]
+    },
+    "s_perprocess": {
+      "title": "Per-Process MCP_AUTH_BEARER",
+      "description": "Each chat session spawns its own gateway subprocess with MCP_AUTH_BEARER set in the per-process environment. At startup, the subprocess calls os.environ.pop('MCP_AUTH_BEARER') to read and remove the credential, then prctl(PR_SET_DUMPABLE,0) to block /proc access. No two chat sessions share a token.",
+      "details": [
+        [
+          "Scope",
+          "One subprocess per chat session"
+        ],
+        [
+          "Env Var",
+          "MCP_AUTH_BEARER (per-process, not global)"
+        ],
+        [
+          "Startup",
+          "os.environ.pop() + prctl(PR_SET_DUMPABLE,0)"
+        ],
+        [
+          "Isolation",
+          "Each chat has its own JWT"
+        ],
+        [
+          "Defends",
+          "Cross-session token leakage, env var sniffing"
+        ]
+      ]
+    },
+    "s_confidential": {
+      "title": "Confidential OIDC Client",
+      "description": "The hermes-dashboard Keycloak client is configured as a confidential client requiring client_secret for the auth code exchange. directAccessGrantsEnabled is set to false, preventing the agent from obtaining tokens programmatically via resource owner password grant.",
+      "details": [
+        [
+          "Client",
+          "hermes-dashboard"
+        ],
+        [
+          "Type",
+          "Confidential (requires client_secret)"
+        ],
+        [
+          "directAccessGrants",
+          "false — no password grant"
+        ],
+        [
+          "Auth Flow",
+          "Authorization code + client_secret only"
+        ],
+        [
+          "Defends",
+          "Agent programmatically obtaining tokens"
+        ]
+      ]
+    },
+    "s_audience": {
+      "title": "Audience Scope Lock",
+      "description": "Only JWTs issued to hermes-dashboard carry the spiffe://retail-demo audience claim. Tokens from admin-cli or other Keycloak clients are rejected by AuthBridge because they lack the correct audience. This is enforced via an oidc-audience-mapper in the default client scopes.",
+      "details": [
+        [
+          "Audience",
+          "spiffe://retail-demo/ns/openshell/sa/default"
+        ],
+        [
+          "Allowed Client",
+          "hermes-dashboard only"
+        ],
+        [
+          "Rejected",
+          "admin-cli, other clients (no audience claim)"
+        ],
+        [
+          "Mechanism",
+          "oidc-audience-mapper in default client scopes"
+        ],
+        [
+          "Defends",
+          "Token from wrong client accepted by AuthBridge"
+        ]
+      ]
+    },
+    "s_ldpreload": {
+      "title": "LD_PRELOAD nodumpable.so",
+      "description": "A compiled C shared library that calls prctl(PR_SET_DUMPABLE,0) in a __attribute__((constructor)) function. Loaded via LD_PRELOAD before main() runs in every child process. Blocks /proc/PID/environ from sibling processes, preventing token extraction from the process environment.",
+      "details": [
+        [
+          "Library",
+          "nodumpable.so (compiled C)"
+        ],
+        [
+          "Mechanism",
+          "prctl(PR_SET_DUMPABLE,0) in constructor"
+        ],
+        [
+          "Timing",
+          "Before main() — cannot be bypassed"
+        ],
+        [
+          "Scope",
+          "Every child process (Node.js + Python)"
+        ],
+        [
+          "Blocks",
+          "/proc/PID/environ readable by siblings"
+        ],
+        [
+          "Defends",
+          "MCP_AUTH_BEARER extraction via /proc"
+        ]
+      ]
     }
   },
   "flows": {
@@ -1849,6 +2005,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "badge": "✓"
         },
         {
+          "text": "⬡ Credential: Per-process MCP_AUTH_BEARER — own JWT per chat session",
+          "mode": "lightup",
+          "target": "s_perprocess",
+          "badge": "✓"
+        },
+        {
           "text": "3b. Auth Proxy forwards (JWT + providers-v2 API key)",
           "mode": "arrow",
           "from": "auth_proxy",
@@ -1910,6 +2072,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "text": "⬡ Process: Subprocess restrictions inherited by children",
           "mode": "lightup",
           "target": "s_inherit",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: LD_PRELOAD nodumpable.so — /proc blocked before main()",
+          "mode": "lightup",
+          "target": "s_ldpreload",
           "badge": "✓"
         },
         {
@@ -1989,6 +2157,18 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "text": "⬡ Identity: On-Behalf-Of — preferred_username:sally forwarded",
           "mode": "lightup",
           "target": "s_obo",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: Confidential OIDC client — client_secret required",
+          "mode": "lightup",
+          "target": "s_confidential",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: Audience scope lock — only hermes-dashboard JWTs accepted",
+          "mode": "lightup",
+          "target": "s_audience",
           "badge": "✓"
         },
         {
@@ -2156,6 +2336,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "badge": "✓"
         },
         {
+          "text": "⬡ Credential: Per-process MCP_AUTH_BEARER — own JWT per chat session",
+          "mode": "lightup",
+          "target": "s_perprocess",
+          "badge": "✓"
+        },
+        {
           "text": "3b. Auth Proxy forwards (JWT + providers-v2 API key)",
           "mode": "arrow",
           "from": "auth_proxy",
@@ -2217,6 +2403,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "text": "⬡ Process: Subprocess restrictions inherited by children",
           "mode": "lightup",
           "target": "s_inherit",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Process: LD_PRELOAD nodumpable.so — /proc blocked before main()",
+          "mode": "lightup",
+          "target": "s_ldpreload",
           "badge": "✓"
         },
         {
@@ -2296,6 +2488,18 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           "text": "⬡ Identity: On-Behalf-Of — preferred_username:sally forwarded",
           "mode": "lightup",
           "target": "s_obo",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: Confidential OIDC client — client_secret required",
+          "mode": "lightup",
+          "target": "s_confidential",
+          "badge": "✓"
+        },
+        {
+          "text": "⬡ Identity: Audience scope lock — only hermes-dashboard JWTs accepted",
+          "mode": "lightup",
+          "target": "s_audience",
           "badge": "✓"
         },
         {
@@ -2727,7 +2931,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 10,
+          "step": 11,
           "label": "③ MCP tool call with JWT",
           "actions": [
             {
@@ -2737,12 +2941,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 20,
+          "step": 22,
           "label": "④ K8s Service → Envoy",
           "actions": []
         },
         {
-          "step": 22,
+          "step": 24,
           "label": "⑤ Envoy → AuthBridge (ext_authz)",
           "actions": [
             {
@@ -2752,7 +2956,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 25,
+          "step": 27,
           "label": "⑥ AuthBridge: JWKS signature check (kid lookup)",
           "actions": [
             {
@@ -2832,7 +3036,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 27,
+          "step": 29,
           "label": "⑦ JWT signature valid, claims verified ✓",
           "actions": [
             {
@@ -2911,7 +3115,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 29,
+          "step": 31,
           "label": "⑧ Request → MCP Server (identity in headers)",
           "actions": [
             {
@@ -2929,7 +3133,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 30,
+          "step": 32,
           "label": "⑨ MCP extracts preferred_username: sally",
           "actions": [
             {
@@ -2943,7 +3147,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 32,
+          "step": 36,
           "label": "⑩ SpiceDB: CheckPermission",
           "actions": [
             {
@@ -2974,7 +3178,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 34,
+          "step": 38,
           "label": "⑪ Permission: ALLOWED ✓",
           "actions": [
             {
@@ -3010,7 +3214,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 35,
+          "step": 39,
           "label": "⑫ Trino query executes",
           "actions": [
             {
@@ -3034,7 +3238,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 37,
+          "step": 41,
           "label": "⑬ Query results returned",
           "phase": "response",
           "actions": [
@@ -3076,7 +3280,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 38,
+          "step": 42,
           "label": "⑭ Response → Hermes",
           "actions": [
             {
@@ -3086,7 +3290,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 39,
+          "step": 43,
           "label": "⑮ Results displayed to Sally",
           "actions": [
             {
@@ -3167,7 +3371,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 10,
+          "step": 11,
           "label": "③ MCP tool call with JWT in Authorization header",
           "actions": [
             {
@@ -3177,12 +3381,12 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 20,
+          "step": 22,
           "label": "④ K8s Service → Envoy",
           "actions": []
         },
         {
-          "step": 22,
+          "step": 24,
           "label": "⑤ Envoy → AuthBridge (ext_authz)",
           "actions": [
             {
@@ -3192,7 +3396,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 25,
+          "step": 27,
           "label": "⑥ AuthBridge: RS256 signature + claims verified",
           "actions": [
             {
@@ -3218,7 +3422,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 27,
+          "step": 29,
           "label": "⑦ JWT signature valid, claims verified ✓",
           "actions": [
             {
@@ -3277,7 +3481,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 29,
+          "step": 31,
           "label": "⑧ Request → MCP Server (identity in headers)",
           "actions": [
             {
@@ -3291,7 +3495,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 30,
+          "step": 32,
           "label": "⑨ MCP extracts preferred_username: sally",
           "actions": [
             {
@@ -3301,7 +3505,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 32,
+          "step": 36,
           "label": "⑩ SpiceDB: CheckPermission",
           "actions": [
             {
@@ -3332,7 +3536,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 34,
+          "step": 38,
           "label": "⑪ Permission: DENIED ✗",
           "actions": [
             {
@@ -3368,7 +3572,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 35,
+          "step": 39,
           "label": "⑫ Access denied → MCP returns error",
           "phase": "error",
           "actions": [
@@ -3413,7 +3617,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 36,
+          "step": 40,
           "label": "⑬ Error response → Hermes",
           "actions": [
             {
@@ -3423,7 +3627,7 @@ var FlowStoryBundle=(()=>{var Q=Object.defineProperty;var ht=Object.getOwnProper
           ]
         },
         {
-          "step": 37,
+          "step": 41,
           "label": "⑭ Permission denied shown to Sally",
           "actions": [
             {
