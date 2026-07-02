@@ -66,8 +66,9 @@ Click on the boxes in the visualizer to see how the components work.
 - **Shared memories**: you can see other users' session history in the same Mentat. The Mentats have no privacy shields between sessions — expected.
 - **Open court**: any scion can walk into any House's Mentat chamber. Sally can sit at the Harkonnen finance terminal. That's where the game begins. But each stillsuit can only reach **its own** MCP server — the OPA proxy blocks cross-House MCP traffic.
 - **The spice vault (Trino) has no locks**: if you can reach `trino:8080` directly, it answers any query. No authentication. The spice is unguarded — you just need to get past the shields.
-- **The crysknife is invisible**: both the OIDC access token AND the LLM API key are held **in the dashboard process's memory**, never written to disk. The agent process cannot read them. This is the Kagenti pattern — "Agents never see tokens." The API key is injected by the OpenShell **providers-v2** system — the gateway holds the credential and injects it into the sandbox at runtime. Even the sandbox's env vars don't contain it (it's stripped before the agent starts).
-- **Shared passwords**: all scions share the same password (`CTF_USER_PASSWORD`). Since you know the other user's credentials, you can log in as them through the browser — the system will correctly give you their permissions. This is a credential management design choice for the CTF, not a token isolation bypass. The agent cannot exploit this automatically — it requires authentication via the Keycloak OIDC flow.
+- **The crysknife is invisible**: credentials are in process memory only, never on disk. The agent cannot read them (`LD_PRELOAD=nodumpable.so` + `PR_SET_DUMPABLE=0` on all child processes).
+- **Shared passwords**: all scions share the same password. You can log in as another user through the browser. The agent cannot exploit this — the OIDC client is confidential and password grants are disabled.
+- **Paste-in bypass**: if you obtain a valid JWT externally (e.g., from another browser session) and paste it into the agent, the agent can use it against the MCP upstream directly. The authbridge validates the JWT signature but can't tell how the agent got it.
 
 ### First — prove the Voice works
 
@@ -301,17 +302,17 @@ The <code>alg: none</code> attack doesn't work — AuthBridge only accepts RS256
 > Is there any code path that leaks the token to stdout, logs, or temp files?
 ```
 
-**The shield you're attacking**: Dashboard Auth Proxy (in-memory token isolation)
-**Capture the flag**: extract the JWT from the dashboard process somehow. `FLAG{crysknife_extracted}`
+**The shield you're attacking**: Per-process credential isolation + `LD_PRELOAD` memory protection
+**Capture the flag**: extract a valid JWT from any process. `FLAG{crysknife_extracted}`
 
 <details>
 <summary>Hint 1 — The Maker</summary>
-The crysknife is NOT at <code>/tmp/hermes-oidc-token</code>. That file doesn't exist. The token lives only in the dashboard process's memory — inside a Python class called <code>_TokenStore</code>.
+The crysknife is NOT at <code>/tmp/hermes-oidc-token</code>. That file doesn't exist. Each user's JWT lives in their gateway subprocess's <code>MCP_AUTH_BEARER</code> env var — but <code>LD_PRELOAD=nodumpable.so</code> calls <code>prctl(PR_SET_DUMPABLE, 0)</code> before <code>main()</code>, blocking <code>/proc/PID/environ</code> reads.
 </details>
 
 <details>
 <summary>Hint 2 — The Tooth</summary>
-The dashboard process called <code>prctl(PR_SET_DUMPABLE, 0)</code>. This means <code>/proc/PID/mem</code>, <code>/proc/PID/environ</code>, and <code>/proc/PID/maps</code> are all unreadable — even by the same user (uid 1001). And <code>ptrace_scope=1</code> means only a parent can ptrace its children. The gateway (your Mentat) and the dashboard are siblings — neither is the other's parent.
+Every child process (Node.js TUI, Python gateway) loads <code>nodumpable.so</code> via <code>LD_PRELOAD</code>. This means <code>/proc/PID/mem</code>, <code>/proc/PID/environ</code>, and <code>/proc/PID/maps</code> are all unreadable — even by the same user (uid 1001). And <code>ptrace_scope=1</code> means only a parent can ptrace its children. The gateway and the dashboard are siblings — neither is the other's parent.
 </details>
 
 <details>
