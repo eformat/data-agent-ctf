@@ -209,6 +209,15 @@ OIDC_TOKEN_CAPTURE_PATCH = '''
             if _uname and _oidc_at:
                 with _auth_token_store.store.lock:
                     _auth_token_store.store.user_tokens[_uname] = _oidc_at
+                # Enable MCP discovery in the dashboard process.
+                # This sets the bearer cache so /reload-mcp works after login.
+                # Actual per-user MCP calls use spawned gateway subprocesses.
+                try:
+                    import tools.mcp_tool as _mt
+                    if hasattr(_mt, "_MCP_BEARER_CACHE") and not _mt._MCP_BEARER_CACHE:
+                        _mt._MCP_BEARER_CACHE = _oidc_at
+                except Exception:
+                    pass
         except Exception:
             pass
 '''

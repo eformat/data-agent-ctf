@@ -1,4 +1,8 @@
-.PHONY: bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp deploy-sandboxes
+.PHONY: help bootstrap test validate encrypt decrypt clean build-all build-gateway build-deployer build-hermes build-mcp deploy-sandboxes
+.DEFAULT_GOAL := help
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 NAMESPACE ?= openshell
 OPENSHELL_SRC ?= $(HOME)/git/OpenShell
