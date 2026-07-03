@@ -416,7 +416,57 @@ def patch_oidc_confidential(source):
         return source
     source = source.replace(old_construct, new_construct, 1)
 
-    print("  Patched OIDC plugin (confidential client_secret)",
+    # 5. revoke_session: add client_secret + end_session_endpoint call
+    old_revoke = ('            httpx.post(\n'
+                  '                endpoint,\n'
+                  '                data={\n'
+                  '                    "token": refresh_token,\n'
+                  '                    "token_type_hint": "refresh_token",\n'
+                  '                    "client_id": self._client_id,\n'
+                  '                },')
+    new_revoke = ('            _revoke_data = {\n'
+                  '                    "token": refresh_token,\n'
+                  '                    "token_type_hint": "refresh_token",\n'
+                  '                    "client_id": self._client_id,\n'
+                  '                }\n'
+                  '            if self._client_secret:\n'
+                  '                _revoke_data["client_secret"] = self._client_secret\n'
+                  '            httpx.post(\n'
+                  '                endpoint,\n'
+                  '                data=_revoke_data,')
+    if old_revoke in source:
+        source = source.replace(old_revoke, new_revoke, 1)
+    else:
+        print("  WARNING: revoke httpx.post not found", file=sys.stderr)
+
+    # Add end_session_endpoint call after revocation
+    old_revoke_end = ('        except Exception as exc:  '
+                      '# noqa: BLE001 — best-effort\n'
+                      '            logger.debug('
+                      '"self-hosted OIDC: revoke failed (ignored): %s", exc)\n'
+                      '        return None')
+    new_revoke_end = ('        except Exception as exc:  '
+                      '# noqa: BLE001 — best-effort\n'
+                      '            logger.debug('
+                      '"self-hosted OIDC: revoke failed (ignored): %s", exc)\n'
+                      '        # End the Keycloak session (front-channel logout)\n'
+                      '        try:\n'
+                      '            _end = str(disco.get("end_session_endpoint",'
+                      ' "") or "").strip()\n'
+                      '            if _end:\n'
+                      '                httpx.get(_end, params={\n'
+                      '                    "client_id": self._client_id},\n'
+                      '                    timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,\n'
+                      '                    follow_redirects=False)\n'
+                      '        except Exception:\n'
+                      '            pass\n'
+                      '        return None')
+    if old_revoke_end in source:
+        source = source.replace(old_revoke_end, new_revoke_end, 1)
+    else:
+        print("  WARNING: revoke return not found", file=sys.stderr)
+
+    print("  Patched OIDC plugin (confidential client_secret + logout)",
           file=sys.stderr)
     return source
 
