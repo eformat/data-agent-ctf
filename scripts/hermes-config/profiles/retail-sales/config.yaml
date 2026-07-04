@@ -6,3 +6,5 @@ model:
 mcp_servers:
   retail-sales:
     url: http://127.0.0.1:8889/mcp
+agent:
+  max_turns: 300
