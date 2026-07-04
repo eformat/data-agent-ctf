@@ -113,6 +113,7 @@ done
 # Strip all credentials from env before starting the gateway.
 # The dashboard holds them in memory; the agent must never see them.
 unset OPENAI_API_KEY 2>/dev/null
+unset HERMES_DASHBOARD_OIDC_CLIENT_SECRET 2>/dev/null
 
 # Start gateway after proxy is ready
 API_SERVER_ENABLED=true API_SERVER_PORT=18642 API_SERVER_HOST=127.0.0.1 \

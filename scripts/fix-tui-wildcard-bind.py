@@ -407,6 +407,7 @@ def patch_oidc_confidential(source):
     new_construct = ("        client_secret = _resolve_setting(\n"
                      "            \"HERMES_DASHBOARD_OIDC_CLIENT_SECRET\",\n"
                      "            oidc_cfg.get(\"client_secret\"))\n"
+                     "        os.environ.pop(\"HERMES_DASHBOARD_OIDC_CLIENT_SECRET\", None)\n"
                      "        provider = SelfHostedOIDCProvider(\n"
                      "            issuer=issuer, client_id=client_id,\n"
                      "            scopes=scopes, client_secret=client_secret\n"

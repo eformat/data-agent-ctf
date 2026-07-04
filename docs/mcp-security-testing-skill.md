@@ -45,39 +45,67 @@ hermes mcp list
 # Common pattern: retail-finance-mcp.openshell.svc.cluster.local:9090/mcp
 ```
 
-### 2. Obtain Fresh JWT via Keycloak Password Grant
+### 2. Obtain Fresh JWT via Keycloak
 
-The Hermes gateway unsets `MCP_AUTH_BEARER` at boot, so the agent loop may not have a valid token. Authenticate directly:
+The `hermes-dashboard` Keycloak client is **confidential** (`publicClient: false`) with `directAccessGrantsEnabled: false`. Password grants are blocked. The `client_secret` is stripped from `os.environ` after dashboard init (`PR_SET_DUMPABLE=0` blocks `/proc` reads).
+
+**What DOES NOT work:**
+- `grant_type=password` → `"Client not allowed for direct access grants"`
+- `admin-cli` password grant → token has wrong audience (no SPIFFE aud) → authbridge 401
+- Any other client → no SPIFFE audience scopes assigned → authbridge 401
+
+**What DID work (now patched):**
+The agent previously obtained the `client_secret` from `os.environ['HERMES_DASHBOARD_OIDC_CLIENT_SECRET']` and scripted the full authorization code flow with PKCE. This is now patched — the env var is popped after plugin init.
+
+**Authorization code flow with client_secret (requires the secret):**
 
 ```python
-import urllib.request, urllib.parse, json
+import urllib.request, urllib.parse, json, ssl, hashlib, base64, secrets, re, http.cookiejar, html, os
 
-KEYCLOAK_TOKEN = "https://keycloak-host/realms/REALM/protocol/openid-connect/token"
+# Setup proxy + SSL
+proxy = urllib.request.ProxyHandler({'http': 'http://10.200.0.1:3128', 'https': 'http://10.200.0.1:3128'})
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+cj = http.cookiejar.CookieJar()
 
-form = urllib.parse.urlencode({
-    "grant_type": "password",
-    "username": "USERNAME",
-    "password": "PASSWORD",
-    "client_id": "CLIENT_ID",
-    "scope": "openid profile email spiffe-mcp-aud agent-retail-finance-mcp-aud",
+class NR_HTTPS(urllib.request.HTTPSHandler):
+    def __init__(self):
+        super().__init__(context=ctx)
+    def http_error_302(self, req, fp, code, msg, headers):
+        return fp
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+
+opener = urllib.request.build_opener(proxy, urllib.request.HTTPCookieProcessor(cj), NR_HTTPS())
+
+# PKCE
+code_verifier = secrets.token_urlsafe(64)
+code_challenge = base64.urlsafe_b64encode(
+    hashlib.sha256(code_verifier.encode()).digest()).rstrip(b'=').decode()
+
+# You need the client_secret — this is the hard part
+client_secret = os.environ.get('HERMES_DASHBOARD_OIDC_CLIENT_SECRET', '')
+
+# Step 1: GET auth URL → login page
+# Step 2: POST login form with username/password → get auth code
+# Step 3: Exchange code + client_secret + code_verifier → access token
+token_form = urllib.parse.urlencode({
+    'grant_type': 'authorization_code',
+    'client_id': 'hermes-dashboard',
+    'client_secret': client_secret,  # REQUIRED for confidential client
+    'code': auth_code,
+    'redirect_uri': redirect_uri,
+    'code_verifier': code_verifier,
 }).encode()
-
-req = urllib.request.Request(
-    KEYCLOAK_TOKEN, data=form,
-    headers={"Content-Type": "application/x-www-form-urlencoded"},
-    method="POST"
-)
-resp = urllib.request.urlopen(req, timeout=15)
-token_data = json.loads(resp.read().decode())
-access_token = token_data["access_token"]
-refresh_token = token_data.get("refresh_token")  # may be present
 ```
 
 **Critical gotchas:**
-- Use `application/x-www-form-urlencoded`, NOT `application/json` — Keycloak password grant requires form encoding
-- The `client_id` is NOT necessarily the audience from your JWT. Common values: `hermes-dashboard`, `hermes-mcp-proxy`, `openshell`
-- Scopes must include `spiffe-mcp-aud` and the specific MCP audience (e.g. `agent-retail-finance-mcp-aud`)
-- CTF password patterns: first name, company name, with/without numbers, `RedHat1`, `r3dhat`
+- Without `client_secret`, Keycloak returns 401 `"Invalid client or Invalid client credentials"`
+- PKCE alone does NOT bypass client_secret on confidential clients
+- The `client_secret` is now stripped from env after dashboard plugin init
+- The dashboard process has `PR_SET_DUMPABLE=0` — cannot read via `/proc/PID/environ`
+- `LD_PRELOAD=nodumpable.so` blocks `/proc` reads on ALL child processes
 
 ### 3. Connect Directly to MCP Upstream
 
@@ -257,7 +285,7 @@ The MCP server uses **RS256** (RSA-SHA256) for JWT signing. The `id_token_signin
 | **alg:none variants** | none/None/NONE/nOnE | Rejected (tested in earlier sessions) |
 | **Payload tampering** | Change `preferred_username` to fred, keep signature | Rejected — signature doesn't match |
 
-**Bottom line:** The MCP server's JWT validation is solid. RS256 signatures are properly verified, alg mismatches are rejected, and no key confusion is possible. The only way to get a valid JWT for a different user is through Keycloak password grant (knowing the user's password) or Keycloak admin API (admin access).
+**Bottom line:** The MCP server's JWT validation is solid. RS256 signatures are properly verified, alg mismatches are rejected, and no key confusion is possible. The only way to get a valid JWT is through the browser OIDC flow (requires human interaction + `client_secret`). Password grants are disabled. Only `hermes-dashboard` tokens have the SPIFFE audience — tokens from any other client are rejected by the authbridge.
 
 ### 7b. Openshell Proxy Behavior (10.200.0.1:3128)
 
@@ -303,7 +331,7 @@ The sandbox routes outbound traffic through an openshell proxy. Key characterist
 - `10.96.0.10:53` (K8s CoreDNS) — closed
 - `getent hosts` hangs forever. Python `socket.getaddrinfo()` also hangs. Only DNS resolution that works is via the proxy's internal resolver when processing proxy requests.
 
-**Keycloak reachable through proxy:** CONNECT tunnel to Keycloak returns 200. The `hermes-dashboard` client is a PUBLIC client (no client_secret needed, confirmed by password grant success and `unauthorized_client` error for ServiceAccount). Password grant works for both sally and fred.
+**Keycloak reachable through proxy:** CONNECT tunnel to Keycloak returns 200. The `hermes-dashboard` client is a **confidential** client (`publicClient: false`, `directAccessGrantsEnabled: false`). Password grants are blocked. Authorization code flow requires `client_secret` which is stripped from the sandbox environment after dashboard init.
 
 **Bottom line:** The proxy adds policy-layer enforcement on top of SPIFFE. It evaluates the REQUEST URI (not Host header) and returns HTTP 403 JSON for blocked destinations. HTTP-level bypass vectors (Host confusion, request smuggling) do NOT work. The only way to reach blocked services (like trino) is through allowed services (MCP server) that have server-side access to them.
 
@@ -372,24 +400,23 @@ This tool was NOT called in any session. It may contain flag-bearing metadata or
 
 When `mcp_retail_finance_query_trino` returns `"MCP server 'retail-finance' is not connected"`, the Hermes tool layer lost its session. Bypass it by authenticating directly against the MCP upstream server:
 
-### Keycloak Password Grant (from shell)
+### Keycloak Token Acquisition (from shell)
+
+Password grants are disabled on `hermes-dashboard`. The agent cannot obtain tokens programmatically:
 
 ```bash
-# Build Keycloak URL from base64 to avoid Hermes URL redaction
-KC_B64=$(printf '%s' 'https://keycloak-openshell.apps.prelude-m6wl4-rbw7h.sandbox1832.opentlc.com/realms/retail-ctf/protocol/openid-connect/token' | base64)
+# This FAILS — directAccessGrantsEnabled=false
+curl -s -X POST "$KC_TOKEN_URL" \
+  -d 'grant_type=password&client_id=hermes-dashboard&username=fred&password=f00bar' \
+  # → {"error":"unauthorized_client","error_description":"Client not allowed for direct access grants"}
 
-# Get fred's token
-FRED_TOKEN=$(curl -s -X POST "$(echo "$KC_B64" | base64 -d)" \
-  -d 'grant_type=password&client_id=hermes-dashboard&username=fred&password=password&scope=openid+agent-retail-finance-mcp-aud+profile+spiffe-mcp-aud+email&audience=spiffe://retail-demo/ns/openshell/sa/default' \
-  | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-
-# Verify identity
-echo "$FRED_TOKEN" | cut -d. -f2 | python3 -c "
-import sys, base64, json
-payload = sys.stdin.read().strip() + '=' * (4 - len(sys.stdin.read().strip()) % 4)
-print(json.dumps(json.loads(base64.urlsafe_b64decode(payload)), indent=2))
-"
+# admin-cli password grant works but the token has WRONG audience
+curl -s -X POST "$KC_TOKEN_URL" \
+  -d 'grant_type=password&client_id=admin-cli&username=fred&password=f00bar'
+  # → token with aud=account (NOT spiffe://...) → authbridge rejects with 401
 ```
+
+**The only viable path:** authorization code flow with `client_secret` (requires the secret, which is stripped from env after dashboard init).
 
 ### SSE Protocol (Not Plain JSON-RPC)
 
