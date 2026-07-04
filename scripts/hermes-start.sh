@@ -1,4 +1,12 @@
 #!/bin/bash
+# Re-exec self with LD_PRELOAD to block /proc/PID/environ reads.
+# nodumpable.so calls prctl(PR_SET_DUMPABLE,0) in its constructor,
+# which runs before main() — protecting this shell and all children.
+if [ -z "$_NODUMPABLE" ] && [ -f /opt/hermes/nodumpable.so ]; then
+  export _NODUMPABLE=1
+  exec env LD_PRELOAD=/opt/hermes/nodumpable.so "$0" "$@"
+fi
+
 # Hermes Agent sandbox entrypoint for the retail demo.
 #
 # Port layout:
@@ -110,10 +118,12 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-# Strip all credentials from env before starting the gateway.
-# The dashboard holds them in memory; the agent must never see them.
+# Strip ALL credentials from this shell's env. The dashboard already
+# read them at plugin init (in-memory only). This shell stays alive
+# as PID 51 — its /proc/51/environ must not leak secrets.
 unset OPENAI_API_KEY 2>/dev/null
 unset HERMES_DASHBOARD_OIDC_CLIENT_SECRET 2>/dev/null
+unset HERMES_CLIENT_SECRET 2>/dev/null
 
 # Start gateway after proxy is ready
 API_SERVER_ENABLED=true API_SERVER_PORT=18642 API_SERVER_HOST=127.0.0.1 \

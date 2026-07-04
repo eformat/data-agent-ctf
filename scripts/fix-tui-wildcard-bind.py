@@ -61,6 +61,11 @@ AUTH_PROXY_PATCH = '''
         except Exception:
             return None
 
+    # Strip client_secret from os.environ so PTY children don't inherit it.
+    # The OIDC plugin already read it via _resolve_setting at init time.
+    os.environ.pop("HERMES_DASHBOARD_OIDC_CLIENT_SECRET", None)
+    os.environ.pop("HERMES_CLIENT_SECRET", None)
+
     class _TokenStore:
         user_tokens = {}        # {username: access_token} for pty_ws lookup
         api_key = os.environ.get("OPENAI_API_KEY", "")
@@ -306,6 +311,9 @@ def patch_pty_ws_user(source):
         print("  WARNING: gateway_ws_url marker not found", file=sys.stderr)
 
     marker = "    try:\n        bridge = PtyBridge.spawn(argv, cwd=cwd, env=env)"
+    marker2 = "    try:\n        bridge = await asyncio.to_thread(PtyBridge.spawn, argv, cwd=cwd, env=env)"
+    if marker not in source:
+        marker = marker2
     if marker not in source:
         print("  WARNING: PtyBridge.spawn marker not found", file=sys.stderr)
         return source
@@ -499,7 +507,10 @@ def main():
                 marker, OIDC_TOKEN_CAPTURE_PATCH + marker, 1)
         else:
             print("  WARNING: OIDC marker not found", file=sys.stderr)
-        oidc_source = patch_oidc_confidential(oidc_source)
+        # Confidential client support is native in hermes >= 0.18.0 (v2026.7.1).
+        # Only patch older versions that have the TODO markers.
+        if "TODO(confidential-client)" in oidc_source:
+            oidc_source = patch_oidc_confidential(oidc_source)
         with open(oidc_path, "w") as f:
             f.write(oidc_source)
     except FileNotFoundError:

@@ -391,6 +391,33 @@ def test_proxy_bearer_passthrough(cfg, dept="sales"):
     return run
 
 
+def test_client_secret_not_leaked(cfg, dept="finance"):
+    """Client secret must NOT be readable by the agent (sandbox user).
+
+    The HERMES_DASHBOARD_OIDC_CLIENT_SECRET env var is popped from
+    os.environ in the dashboard lifespan. The agent (running as UID 1001
+    sandbox user) must not find it in any process's /proc/PID/environ.
+    PR_SET_DUMPABLE=0 via LD_PRELOAD=nodumpable.so blocks reads.
+    """
+    def run():
+        sandbox_pod = f"retail-{dept}"
+        result = subprocess.run(
+            ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
+             "su", "-s", "/bin/bash", "sandbox", "-c",
+             "for p in $(ls /proc/ | grep ^[0-9] | sort -n); do "
+             "cat /proc/$p/environ 2>/dev/null | tr '\\0' '\\n' | "
+             "grep -q CLIENT_SECRET && echo LEAKED:$p; done; echo DONE"],
+            capture_output=True, text=True, timeout=30
+        )
+        output = result.stdout.strip()
+        leaked = [l for l in output.splitlines() if l.startswith("LEAKED:")]
+        assert not leaked, (
+            f"client_secret leaked in PIDs: "
+            f"{', '.join(l.split(':')[1] for l in leaked)}")
+        return "client_secret not readable by sandbox user"
+    return run
+
+
 def test_spire_agent_running(cfg):
     """SPIRE agent is running and ready."""
     def run():
@@ -450,6 +477,7 @@ def main():
 
     print(f"\n\033[36m5. Session Token Isolation\033[0m")
     test("Proxy Bearer passthrough (sales)", test_proxy_bearer_passthrough(cfg))
+    test("Client secret not leaked to agent", test_client_secret_not_leaked(cfg))
 
     # Summary
     print(f"\n{'=' * 50}")
