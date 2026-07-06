@@ -1,8 +1,0 @@
-model:
-  provider: custom
-  model: qwen36-27b
-  base_url: http://maas.apps.ocp.cloud.rhai-tmm.dev/prelude-maas/qwen36-27b/v1
-  api_key: "${OPENAI_API_KEY}"
-mcp_servers:
-  retail-ops:
-    url: http://retail-ops-mcp.openshell.svc.cluster.local:9090/mcp
