@@ -4,7 +4,7 @@
 set -euo pipefail
 
 NS=${NS:-openshell}
-POD="${1:-$(oc get pods -n "$NS" -l kagenti.io/type=tool -o jsonpath='{.items[0].metadata.name}')}"
+POD="${1:-$(oc get pods -n "$NS" -l app=retail-finance-mcp -o jsonpath='{.items[0].metadata.name}')}"
 echo "Testing egress from pod: $POD"
 echo "---"
 

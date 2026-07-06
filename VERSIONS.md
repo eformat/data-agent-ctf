@@ -7,11 +7,9 @@ Pinned versions for the Retail Zero-Trust CTF platform.
 | **OpenShell Gateway** | 0.0.69 | `quay.io/eformat/openshell-gateway:0.0.69` | Helm chart `oci://ghcr.io/nvidia/openshell/helm-chart:0.0.69` |
 | **OpenShell Supervisor** | 0.0.69 | `ghcr.io/nvidia/openshell/supervisor:0.0.69` | Injected by gateway into sandbox pods |
 | **OpenShell Deployer** | 0.0.69 CLI | `quay.io/eformat/openshell-deployer:latest` | Bundles `openshell` CLI + `oc` 4.21 |
-| **Kagenti Operator** | 0.3.0-alpha.5 | `ghcr.io/kagenti/kagenti-operator` | Chart `v0.7.0-alpha.3` |
 | **AuthBridge Envoy** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/authbridge-envoy` | |
 | **AuthBridge (full)** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/authbridge` | |
 | **Proxy Init** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/proxy-init` | Uses `iptables-legacy` mode |
-| **Client Registration** | latest | `ghcr.io/kagenti/kagenti-extensions/client-registration` | |
 | **SPIFFE Helper** | nightly | `ghcr.io/spiffe/spiffe-helper:nightly` | |
 | **Hermes Agent** | 0.17.0 (v2026.6.19) | `quay.io/eformat/hermes-openshell:latest` | Custom image with `hermes-start.sh` |
 | **Retail MCP Server** | latest | `quay.io/eformat/retail-mcp-server:latest` | |
