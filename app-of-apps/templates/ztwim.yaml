@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-kagenti-ztwim
+  name: retail-ctf-ztwim
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "1"
@@ -13,7 +13,7 @@ spec:
   source:
     repoURL: {{ .Values.gitRepo }}
     targetRevision: {{ .Values.gitRevision }}
-    path: applications/kagenti/ztwim
+    path: applications/ztwim/ztwim
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-zero-trust-workload-identity-manager
@@ -33,7 +33,7 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-kagenti-ztwim-instances
+  name: retail-ctf-ztwim-instances
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -44,7 +44,7 @@ spec:
   source:
     repoURL: {{ .Values.gitRepo }}
     targetRevision: {{ .Values.gitRevision }}
-    path: applications/kagenti/ztwim-instances
+    path: applications/ztwim/ztwim-instances
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-zero-trust-workload-identity-manager
