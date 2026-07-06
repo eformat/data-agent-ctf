@@ -2,37 +2,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: retail-ctf-kagenti-rbac
-  namespace: openshift-gitops
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    repoURL: {{ .Values.gitRepo }}
-    targetRevision: {{ .Values.gitRevision }}
-    path: applications/kagenti/rbac
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: kagenti-system
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-    retry:
-      limit: 10
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
   name: retail-ctf-kagenti-ztwim
   namespace: openshift-gitops
   annotations:
