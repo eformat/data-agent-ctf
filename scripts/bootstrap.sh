@@ -53,7 +53,7 @@ if $TENANT_ARGOCD; then
 else
   oc label namespace "${NAMESPACE}" argocd.argoproj.io/managed-by=openshift-gitops --overwrite
 fi
-oc label namespace "${NAMESPACE}" kagenti-enabled=true --overwrite
+oc label namespace "${NAMESPACE}" spire-identity=true --overwrite
 
 # 3. Create sops-age-key secret (for secret decryption)
 if [ -f "${REPO_DIR}/age-key.txt" ]; then

@@ -53,5 +53,5 @@ spec:
   className: zero-trust-workload-identity-manager-spire
   namespaceSelector:
     matchLabels:
-      kagenti-enabled: "true"
+      spire-identity: "true"
   spiffeIDTemplate: "spiffe://retail-demo/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"

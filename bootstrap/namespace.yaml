@@ -5,4 +5,4 @@ metadata:
   name: openshell
   labels:
     argocd.argoproj.io/managed-by: openshift-gitops
-    kagenti-enabled: "true"
+    spire-identity: "true"
