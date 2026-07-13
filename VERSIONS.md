@@ -11,7 +11,7 @@ Pinned versions for the Retail Zero-Trust CTF platform.
 | **AuthBridge (full)** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/authbridge` | |
 | **Proxy Init** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/proxy-init` | Uses `iptables-legacy` mode |
 | **SPIFFE Helper** | nightly | `ghcr.io/spiffe/spiffe-helper:nightly` | |
-| **Hermes Agent** | 0.18.0 (v2026.7.1) | `quay.io/eformat/hermes-openshell:latest` | Custom image with `hermes-start.sh` |
+| **Hermes Agent** | 0.18.2 (v2026.7.7.2) | `quay.io/eformat/hermes-openshell:latest` | Custom image with `hermes-start.sh` |
 | **Retail MCP Server** | latest | `quay.io/eformat/retail-mcp-server:latest` | |
 | **Keycloak (RHBK)** | v26 | Operator-managed | Realm: `retail-ctf` |
 | **SpiceDB** | operator | `authzed/spicedb-operator` | |

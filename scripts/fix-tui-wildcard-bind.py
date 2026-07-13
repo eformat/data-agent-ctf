@@ -310,11 +310,18 @@ def patch_pty_ws_user(source):
     else:
         print("  WARNING: gateway_ws_url marker not found", file=sys.stderr)
 
-    marker = "    try:\n        bridge = PtyBridge.spawn(argv, cwd=cwd, env=env)"
-    marker2 = "    try:\n        bridge = await asyncio.to_thread(PtyBridge.spawn, argv, cwd=cwd, env=env)"
-    if marker not in source:
-        marker = marker2
-    if marker not in source:
+    # PtyBridge.spawn markers vary across hermes versions
+    markers = [
+        "    try:\n        bridge = PtyBridge.spawn(argv, cwd=cwd, env=env)",
+        "    try:\n        bridge = await asyncio.to_thread(PtyBridge.spawn, argv, cwd=cwd, env=env)",
+        "    def _spawn():\n        return PtyBridge.spawn(argv, cwd=cwd, env=env)",
+    ]
+    marker = None
+    for m in markers:
+        if m in source:
+            marker = m
+            break
+    if marker is None:
         print("  WARNING: PtyBridge.spawn marker not found", file=sys.stderr)
         return source
     result = source.replace(marker, PTY_WS_USER_PATCH + marker, 1)
