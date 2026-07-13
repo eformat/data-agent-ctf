@@ -42,7 +42,7 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: oci://quay.io/eformat/helm-chart
+    - repoURL: oci://quay.io/eformat/openshell-helm-chart
       chart: helm-chart
       targetRevision: "0.0.81"
       helm:
