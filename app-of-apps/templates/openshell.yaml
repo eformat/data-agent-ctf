@@ -44,7 +44,7 @@ spec:
   sources:
     - repoURL: oci://ghcr.io/nvidia/openshell/helm-chart
       chart: openshell
-      targetRevision: "0.0.69"
+      targetRevision: "0.0.80"
       helm:
         releaseName: openshell
         valueFiles:
