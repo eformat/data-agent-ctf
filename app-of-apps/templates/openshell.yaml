@@ -42,9 +42,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: oci://ghcr.io/nvidia/openshell/helm-chart
-      chart: openshell
-      targetRevision: "0.0.80"
+    - repoURL: oci://quay.io/eformat/helm-chart
+      chart: helm-chart
+      targetRevision: "0.0.81"
       helm:
         releaseName: openshell
         valueFiles:
