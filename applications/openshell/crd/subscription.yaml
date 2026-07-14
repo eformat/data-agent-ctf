@@ -9,9 +9,7 @@ kind: OperatorGroup
 metadata:
   name: agent-sandbox-operator
   namespace: agent-sandbox-system
-spec:
-  targetNamespaces:
-    - openshell
+spec: {}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
