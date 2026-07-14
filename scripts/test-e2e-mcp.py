@@ -40,6 +40,31 @@ def oc(*args):
     return result.stdout.strip()
 
 
+def _sandbox_pod(cfg, sandbox_name):
+    """Resolve sandbox name to actual pod name (handles warm pool pod names)."""
+    try:
+        pod = oc("get", "sandbox", sandbox_name, "-n", cfg["namespace"],
+                 "-o", "jsonpath={.metadata.annotations.agents\\.x-k8s\\.io/pod-name}")
+        if pod:
+            return pod
+    except RuntimeError:
+        pass
+    try:
+        pods = oc("get", "pods", "-n", cfg["namespace"],
+                  "-l", "agents.x-k8s.io/sandbox-name-hash",
+                  "-o", "jsonpath={.items[*].metadata.name}").split()
+        for pod in pods:
+            r = subprocess.run(
+                ["oc", "exec", "-n", cfg["namespace"], pod, "--",
+                 "bash", "-c", f"cat /sandbox/.hermes/active_profile 2>/dev/null"],
+                capture_output=True, text=True, timeout=5)
+            if r.returncode == 0 and sandbox_name.replace("retail-", "") in r.stdout.strip():
+                return pod
+    except (RuntimeError, subprocess.TimeoutExpired):
+        pass
+    return sandbox_name
+
+
 def test(name, fn):
     """Run a test function, print result."""
     try:
@@ -329,7 +354,7 @@ def test_proxy_bearer_passthrough(cfg, dept="sales"):
             tokens[user] = _auth_code_login(cfg, user)
             assert tokens[user], f"{user} login failed"
 
-        sandbox_pod = f"retail-{dept}"
+        sandbox_pod = _sandbox_pod(cfg, f"retail-{dept}")
         hermes_pid = subprocess.run(
             ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
              "bash", "-c", "pgrep -f 'hermes_cli.main.*dashboard' | head -1"],
@@ -400,7 +425,7 @@ def test_client_secret_not_leaked(cfg, dept="finance"):
     PR_SET_DUMPABLE=0 via LD_PRELOAD=nodumpable.so blocks reads.
     """
     def run():
-        sandbox_pod = f"retail-{dept}"
+        sandbox_pod = _sandbox_pod(cfg, f"retail-{dept}")
         result = subprocess.run(
             ["oc", "exec", "-n", cfg["namespace"], sandbox_pod, "--",
              "su", "-s", "/bin/bash", "sandbox", "-c",

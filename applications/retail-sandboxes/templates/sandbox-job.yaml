@@ -184,7 +184,7 @@ data:
                HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
                INFERENCE_UPSTREAM_URL="${INFERENCE_URL}" \
                MCP_UPSTREAM_URL="http://retail-${dept}-mcp.${NAMESPACE}.svc.cluster.local:9090" \
-               /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
+               nohup /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
 
       rm -f "/tmp/policy-${dept}.yaml"
       echo "  ${name}: https://${name}.${APPS_DOMAIN}"
