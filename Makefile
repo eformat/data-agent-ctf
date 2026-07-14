@@ -83,7 +83,7 @@ deploy-sandboxes: ## Delete and recreate all sandboxes
 	@for name in retail-finance retail-sales retail-ops; do \
 		openshell sandbox delete $$name -g $(GATEWAY) 2>/dev/null || true; \
 	done
-	@oc delete sandbox --all -n $(NAMESPACE) 2>/dev/null || true
+	@oc get sandbox -n $(NAMESPACE) -o name --no-headers 2>/dev/null | grep -v hermes-agents | xargs -r oc delete -n $(NAMESPACE) 2>/dev/null || true
 	@oc delete job retail-sandbox-deploy -n $(NAMESPACE) --force --grace-period=0 2>/dev/null || true
 	@oc delete pod -n $(NAMESPACE) -l job-name=retail-sandbox-deploy --force --grace-period=0 2>/dev/null || true
 	@sleep 3
