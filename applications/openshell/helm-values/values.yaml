@@ -1,7 +1,7 @@
 ---
 image:
   repository: quay.io/eformat/openshell-gateway
-  tag: v0.0.81
+  tag: warm-pool-poc
   pullPolicy: Always
 grpcRoute:
   enabled: false
