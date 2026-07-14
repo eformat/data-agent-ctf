@@ -16,7 +16,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: openshell-supervisor-install
-          image: ghcr.io/nvidia/openshell/supervisor:dev
+          image: quay.io/rhuss/openshell-supervisor:warm-pool-poc
           command:
             - /openshell-sandbox
             - copy-self
@@ -53,6 +53,23 @@ spec:
           image: quay.io/eformat/hermes-openshell:latest
           command:
             - /opt/openshell/bin/openshell-sandbox
+            - --unidentified
+            - --health-check
+            - --health-port
+            - "8080"
+          ports:
+            - containerPort: 9090
+              name: grpc
+              protocol: TCP
+            - containerPort: 8080
+              name: health
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 1
+            periodSeconds: 2
           env:
             - name: OPENSHELL_ENDPOINT
               value: "https://openshell.openshell.svc.cluster.local:8080"
