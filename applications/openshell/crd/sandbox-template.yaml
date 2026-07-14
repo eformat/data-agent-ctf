@@ -13,7 +13,7 @@ spec:
       automountServiceAccountToken: false
       dnsPolicy: ClusterFirst
       securityContext:
-        fsGroup: 1000
+        fsGroup: 1001
       initContainers:
         - name: openshell-supervisor-install
           image: quay.io/eformat/openshell-supervisor:warm-pool-poc
@@ -87,6 +87,10 @@ spec:
               value: "/etc/openshell-tls/client/tls.key"
             - name: OPENSHELL_K8S_SA_TOKEN_FILE
               value: "/var/run/secrets/openshell/token"
+            - name: OPENSHELL_SANDBOX_UID
+              value: "1001"
+            - name: OPENSHELL_SANDBOX_GID
+              value: "1001"
           securityContext:
             runAsUser: 0
             appArmorProfile:
