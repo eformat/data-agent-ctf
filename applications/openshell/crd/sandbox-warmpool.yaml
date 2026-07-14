@@ -1,0 +1,12 @@
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: hermes-agents
+  namespace: openshell
+spec:
+  replicas: 3
+  sandboxTemplateRef:
+    name: hermes-agent
+  updateStrategy:
+    type: OnReplenish

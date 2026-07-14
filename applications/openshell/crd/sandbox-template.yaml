@@ -1,0 +1,118 @@
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: hermes-agent
+  namespace: openshell
+spec:
+  envVarsInjectionPolicy: Allowed
+  networkPolicyManagement: Unmanaged
+  podTemplate:
+    spec:
+      serviceAccountName: openshell-sandbox
+      automountServiceAccountToken: false
+      dnsPolicy: ClusterFirst
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: openshell-supervisor-install
+          image: ghcr.io/nvidia/openshell/supervisor:dev
+          command:
+            - /openshell-sandbox
+            - copy-self
+            - /opt/openshell/bin/openshell-sandbox
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+        - name: workspace-init
+          image: quay.io/eformat/hermes-openshell:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /workspace-pvc/.workspace-initialized ]; then
+                if [ -d /sandbox ]; then
+                  tmp=$(mktemp) && rm -f "$tmp"
+                  (cd /sandbox && find . -mindepth 1 -maxdepth 1 -exec tar -cf "$tmp" {} +)
+                  if [ -f "$tmp" ]; then
+                    tar -C /workspace-pvc --no-same-owner --no-same-permissions --touch -xf "$tmp"
+                    rm -f "$tmp"
+                  fi
+                fi
+                touch /workspace-pvc/.workspace-initialized
+              fi
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace-pvc
+      containers:
+        - name: agent
+          image: quay.io/eformat/hermes-openshell:latest
+          command:
+            - /opt/openshell/bin/openshell-sandbox
+          env:
+            - name: OPENSHELL_ENDPOINT
+              value: "https://openshell.openshell.svc.cluster.local:8080"
+            - name: OPENSHELL_SANDBOX_COMMAND
+              value: "sleep infinity"
+            - name: OPENSHELL_TELEMETRY_ENABLED
+              value: "true"
+            - name: OPENSHELL_SSH_SOCKET_PATH
+              value: "/run/openshell/ssh.sock"
+            - name: OPENSHELL_TLS_CA
+              value: "/etc/openshell-tls/client/ca.crt"
+            - name: OPENSHELL_TLS_CERT
+              value: "/etc/openshell-tls/client/tls.crt"
+            - name: OPENSHELL_TLS_KEY
+              value: "/etc/openshell-tls/client/tls.key"
+            - name: OPENSHELL_K8S_SA_TOKEN_FILE
+              value: "/var/run/secrets/openshell/token"
+          securityContext:
+            runAsUser: 0
+            appArmorProfile:
+              type: Unconfined
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - NET_ADMIN
+                - SYS_PTRACE
+                - SYSLOG
+          volumeMounts:
+            - name: openshell-client-tls
+              mountPath: /etc/openshell-tls/client
+              readOnly: true
+            - name: openshell-sa-token
+              mountPath: /var/run/secrets/openshell
+              readOnly: true
+            - name: openshell-supervisor-bin
+              mountPath: /opt/openshell/bin
+              readOnly: true
+            - name: workspace
+              mountPath: /sandbox
+      volumes:
+        - name: openshell-client-tls
+          secret:
+            secretName: openshell-client-tls
+            defaultMode: 256
+        - name: openshell-sa-token
+          projected:
+            defaultMode: 256
+            sources:
+              - serviceAccountToken:
+                  audience: openshell-gateway
+                  expirationSeconds: 3600
+                  path: token
+        - name: openshell-supervisor-bin
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
