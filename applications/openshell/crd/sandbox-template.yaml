@@ -16,7 +16,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: openshell-supervisor-install
-          image: quay.io/rhuss/openshell-supervisor:warm-pool-poc
+          image: quay.io/eformat/openshell-supervisor:warm-pool-poc
           command:
             - /openshell-sandbox
             - copy-self
