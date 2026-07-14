@@ -1,0 +1,34 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openshell-warmpool
+  namespace: openshell
+rules:
+  - apiGroups:
+      - extensions.agents.x-k8s.io
+    resources:
+      - sandboxwarmpools
+      - sandboxtemplates
+      - sandboxclaims
+      - sandboxclaims/status
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openshell-warmpool
+  namespace: openshell
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: openshell-warmpool
+subjects:
+  - kind: ServiceAccount
+    name: openshell
+    namespace: openshell

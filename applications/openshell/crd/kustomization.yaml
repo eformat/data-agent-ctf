@@ -5,3 +5,4 @@ resources:
   - subscription.yaml
   - sandbox-template.yaml
   - sandbox-warmpool.yaml
+  - warmpool-rbac.yaml
