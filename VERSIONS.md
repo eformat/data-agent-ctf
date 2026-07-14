@@ -20,6 +20,7 @@ Pinned versions for the Retail Zero-Trust CTF platform.
 | **Nessie** | latest | Helm chart | Iceberg catalog backend |
 | **cert-manager** | latest | Operator | |
 | **ZTWIM (SPIRE)** | 1.14.7 | Operator-managed | Trust domain: `retail-demo` |
+| **Agent Sandbox Operator** | 0.9.0 | OLM `redhat-operators` catalog | Channel: `preview-0.9`, AllNamespaces mode |
 | **OpenShift** | 4.21 | | Target cluster version |
 
 ## Custom Images
