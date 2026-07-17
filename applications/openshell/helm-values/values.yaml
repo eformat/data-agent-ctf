@@ -17,6 +17,10 @@ server:
   oidc:
     audience: "openshell-cli"
     rolesClaim: "realm_access.roles"
+  providerTokenGrants:
+    spiffe:
+      enabled: true
+      workloadApiSocketPath: /spiffe-workload-api/spire-agent.sock
 service:
   type: ClusterIP
 tolerations:
