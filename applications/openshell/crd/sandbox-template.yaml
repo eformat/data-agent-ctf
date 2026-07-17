@@ -111,6 +111,9 @@ spec:
             - name: openshell-supervisor-bin
               mountPath: /opt/openshell/bin
               readOnly: true
+            - name: spiffe-workload-api
+              mountPath: /spiffe-workload-api
+              readOnly: true
             - name: workspace
               mountPath: /sandbox
       volumes:
@@ -128,6 +131,10 @@ spec:
                   path: token
         - name: openshell-supervisor-bin
           emptyDir: {}
+        - name: spiffe-workload-api
+          csi:
+            driver: csi.spiffe.io
+            readOnly: true
   volumeClaimTemplates:
     - metadata:
         name: workspace
