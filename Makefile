@@ -56,17 +56,17 @@ build-gateway: ## Build + push openshell-gateway (requires $(OPENSHELL_SRC))
 	cp /lib64/libz3.so.4.15 /tmp/libz3.so.4.15 2>/dev/null || cp /usr/lib64/libz3.so.4.15 /tmp/libz3.so.4.15
 	cp /lib64/libgmp.so.10 /tmp/libgmp.so.10 2>/dev/null || cp /usr/lib64/libgmp.so.10 /tmp/libgmp.so.10
 	printf 'FROM gcr.io/distroless/cc-debian13:latest\nWORKDIR /app\nCOPY openshell-gateway /usr/local/bin/openshell-gateway\nCOPY libz3.so.4.15 /usr/lib/x86_64-linux-gnu/libz3.so.4.15\nCOPY libgmp.so.10 /usr/lib/x86_64-linux-gnu/libgmp.so.10\nUSER 1000:1000\nEXPOSE 8080\nENTRYPOINT ["/usr/local/bin/openshell-gateway"]\nCMD ["--bind-address", "0.0.0.0:8080"]\n' > /tmp/Containerfile.gateway
-	podman build -t $(REGISTRY)/openshell-gateway:v0.0.81 -f /tmp/Containerfile.gateway /tmp/
-	podman push $(REGISTRY)/openshell-gateway:v0.0.81
+	podman build -t $(REGISTRY)/openshell-gateway:v0.0.85 -f /tmp/Containerfile.gateway /tmp/
+	podman push $(REGISTRY)/openshell-gateway:v0.0.85
 
 build-deployer: ## Build + push openshell-deployer (requires $(OPENSHELL_SRC))
 	cd $(OPENSHELL_SRC) && cargo build --release -p openshell-cli
 	cp $(OPENSHELL_SRC)/target/release/openshell /tmp/openshell
 	cp /lib64/libz3.so.4.15 /tmp/libz3.so.4.15 2>/dev/null || true
 	cp /lib64/libgmp.so.10 /tmp/libgmp.so.10 2>/dev/null || true
-	podman build -t $(REGISTRY)/openshell-deployer:latest -t $(REGISTRY)/openshell-deployer:v0.0.81 -f scripts/Containerfile.openshell-deployer /tmp/
+	podman build -t $(REGISTRY)/openshell-deployer:latest -t $(REGISTRY)/openshell-deployer:v0.0.85 -f scripts/Containerfile.openshell-deployer /tmp/
 	podman push $(REGISTRY)/openshell-deployer:latest
-	podman push $(REGISTRY)/openshell-deployer:v0.0.81
+	podman push $(REGISTRY)/openshell-deployer:v0.0.85
 
 build-hermes: ## Build + push hermes-openshell sandbox image
 	podman build -t $(REGISTRY)/hermes-openshell:latest -t $(REGISTRY)/hermes-openshell:0.17.0 -f scripts/Containerfile.hermes-sandbox .

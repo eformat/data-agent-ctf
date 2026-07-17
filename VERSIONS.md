@@ -4,9 +4,9 @@ Pinned versions for the Retail Zero-Trust CTF platform.
 
 | Component | Version | Image / Chart | Notes |
 |-----------|---------|---------------|-------|
-| **OpenShell Gateway** | 0.0.81 | `quay.io/eformat/openshell-gateway:0.0.81` | Helm chart `oci://ghcr.io/nvidia/openshell/helm-chart:0.0.81` |
-| **OpenShell Supervisor** | 0.0.81 | `ghcr.io/nvidia/openshell/supervisor:0.0.81` | Injected by gateway into sandbox pods |
-| **OpenShell Deployer** | 0.0.81 CLI | `quay.io/eformat/openshell-deployer:latest` | Bundles `openshell` CLI + `oc` 4.21 |
+| **OpenShell Gateway** | 0.0.85 | `quay.io/eformat/openshell-gateway:0.0.85` | Helm chart `oci://ghcr.io/nvidia/openshell/helm-chart:0.0.85` |
+| **OpenShell Supervisor** | 0.0.85 | `quay.io/eformat/openshell-supervisor:v0.0.85` | Custom build with `--unidentified` warm pool support |
+| **OpenShell Deployer** | 0.0.85 CLI | `quay.io/eformat/openshell-deployer:latest` | Bundles `openshell` CLI + `oc` 4.21 |
 | **AuthBridge Envoy** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/authbridge-envoy` | |
 | **AuthBridge (full)** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/authbridge` | |
 | **Proxy Init** | v0.6.0-alpha.9 | `ghcr.io/kagenti/kagenti-extensions/proxy-init` | Uses `iptables-legacy` mode |
@@ -29,7 +29,8 @@ Built from this repo (`scripts/Containerfile.*`):
 
 | Image | Source | Build |
 |-------|--------|-------|
-| `quay.io/eformat/openshell-gateway:0.0.81` | `~/git/OpenShell` (v0.0.81) | `cargo build --release -p openshell-server` |
+| `quay.io/eformat/openshell-gateway:v0.0.85` | `~/git/OpenShell` (v0.0.85) | `cargo build --release -p openshell-server` |
+| `quay.io/eformat/openshell-supervisor:v0.0.85` | `~/git/OpenShell` (v0.0.85) | `cargo build --release --target x86_64-unknown-linux-musl -p openshell-sandbox` |
 | `quay.io/eformat/openshell-deployer:latest` | `scripts/Containerfile.openshell-deployer` | Bundles openshell CLI + oc + libz3 |
 | `quay.io/eformat/hermes-openshell:latest` | `scripts/Containerfile.hermes-sandbox` | hermes-agent + `hermes-start.sh` |
 | `quay.io/eformat/retail-mcp-server:latest` | `scripts/Containerfile.retail-mcp-server` | Build context: `~/git/data-agent-template` |
