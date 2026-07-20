@@ -5,7 +5,7 @@ metadata:
   name: hermes-agents
   namespace: openshell
 spec:
-  replicas: 3
+  replicas: 1
   sandboxTemplateRef:
     name: hermes-agent
   updateStrategy:
