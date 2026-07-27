@@ -146,7 +146,7 @@ spec:
             - name: svid-output
               mountPath: /opt
         - name: client-registration
-          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          image: quay.io/eformat/client-registration:latest
           imagePullPolicy: Always
           command: ["/bin/sh", "-c"]
           args:
@@ -447,7 +447,7 @@ spec:
             - name: svid-output
               mountPath: /opt
         - name: client-registration
-          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          image: quay.io/eformat/client-registration:latest
           imagePullPolicy: Always
           command: ["/bin/sh", "-c"]
           args:
@@ -748,7 +748,7 @@ spec:
             - name: svid-output
               mountPath: /opt
         - name: client-registration
-          image: ghcr.io/kagenti/kagenti-extensions/client-registration:latest
+          image: quay.io/eformat/client-registration:latest
           imagePullPolicy: Always
           command: ["/bin/sh", "-c"]
           args:
