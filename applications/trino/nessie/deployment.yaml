@@ -1,5 +1,4 @@
 ---
-# TODO: copy from ~/git/trino-chart/nessie/
 # Nessie catalog server for Iceberg metadata
 apiVersion: apps/v1
 kind: Deployment
@@ -26,10 +25,33 @@ spec:
           image: ghcr.io/projectnessie/nessie@sha256:1fc1e7d02a3d49827dd90c0cd41412303b525321d7fc5497e57d78693f8c3306
           ports:
             - containerPort: 19120
+          env:
+            - name: NESSIE_VERSION_STORE_TYPE
+              value: ROCKSDB
+            - name: NESSIE_VERSION_STORE_PERSIST_ROCKSDB_DATABASE_PATH
+              value: /var/lib/nessie/rocks
+          volumeMounts:
+            - name: nessie-data
+              mountPath: /var/lib/nessie
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
+      volumes:
+        - name: nessie-data
+          persistentVolumeClaim:
+            claimName: nessie-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nessie-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
