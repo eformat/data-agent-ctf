@@ -7,6 +7,23 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: "3600s"
 spec:
+  host: retail-{{ $dept }}.{{ $.Values.appsDomain }}
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+  port:
+    targetPort: grpc
+  to:
+    kind: Service
+    name: openshell
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: default--retail-{{ $dept }}
+  annotations:
+    haproxy.router.openshift.io/timeout: "3600s"
+spec:
   host: default--retail-{{ $dept }}.{{ $.Values.appsDomain }}
   tls:
     termination: reencrypt
