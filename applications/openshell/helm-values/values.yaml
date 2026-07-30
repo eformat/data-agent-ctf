@@ -1,7 +1,7 @@
 ---
 image:
   repository: quay.io/eformat/openshell-gateway
-  tag: v0.0.85
+  tag: v0.0.94
   pullPolicy: Always
 grpcRoute:
   enabled: false

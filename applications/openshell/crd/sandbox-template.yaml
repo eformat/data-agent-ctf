@@ -16,7 +16,7 @@ spec:
         fsGroup: 1001
       initContainers:
         - name: openshell-supervisor-install
-          image: quay.io/eformat/openshell-supervisor:v0.0.85
+          image: quay.io/eformat/openshell-supervisor:v0.0.94
           command:
             - /openshell-sandbox
             - copy-self
@@ -27,7 +27,7 @@ spec:
             - name: openshell-supervisor-bin
               mountPath: /opt/openshell/bin
         - name: workspace-init
-          image: quay.io/eformat/hermes-openshell:latest
+          image: quay.io/eformat/hermes-openshell:v0.19.0
           command:
             - sh
             - -c
@@ -50,7 +50,7 @@ spec:
               mountPath: /workspace-pvc
       containers:
         - name: agent
-          image: quay.io/eformat/hermes-openshell:latest
+          image: quay.io/eformat/hermes-openshell:v0.19.0
           command:
             - /opt/openshell/bin/openshell-sandbox
             - --unidentified
