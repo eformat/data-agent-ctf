@@ -181,7 +181,7 @@ data:
                HERMES_DASHBOARD_OIDC_ISSUER="${KEYCLOAK_ISSUER}" \
                HERMES_DASHBOARD_OIDC_CLIENT_ID="${KEYCLOAK_CLIENT_ID}" \
                HERMES_DASHBOARD_OIDC_CLIENT_SECRET="${HERMES_CLIENT_SECRET}" \
-               HERMES_PUBLIC_URL="https://default--${name}.${APPS_DOMAIN}" \
+               HERMES_PUBLIC_URL="https://${name}.${APPS_DOMAIN}" \
                INFERENCE_UPSTREAM_URL="${INFERENCE_URL}" \
                MCP_UPSTREAM_URL="http://retail-${dept}-mcp.${NAMESPACE}.svc.cluster.local:9090" \
                nohup /usr/local/bin/hermes-start.sh </dev/null >/dev/null 2>&1 &
