@@ -66,7 +66,7 @@ spec:
               CA_JSON=$(echo "$CA" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 
               echo "=== Patching routes with destinationCACertificate ==="
-              for route in retail-finance retail-sales retail-ops; do
+              for route in retail-finance retail-sales retail-ops default--retail-finance default--retail-sales default--retail-ops; do
                 if oc get route "$route" -n "$NAMESPACE" 2>/dev/null; then
                   oc patch route "$route" -n "$NAMESPACE" --type=merge \
                     -p "{\"spec\":{\"tls\":{\"destinationCACertificate\":${CA_JSON}}}}" 2>&1
